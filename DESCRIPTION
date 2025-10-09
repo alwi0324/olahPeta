@@ -1,0 +1,21 @@
+Package: olahPeta
+Type: Package
+Title: Automated Renaming of BPS Census/Survey Maps Using OCR
+Version: 1.1.0
+Author: @alwi0324
+Maintainer: Emha Alwi Al Makky <emhaalwialmakky@gmail.com>
+Description: Provides functions to automatically read and rename a batch 
+    of scanned map images based on a 14-digit code found within the image 
+    through Optical Character Recognition (OCR).
+License: What license is it under?
+Encoding: UTF-8
+LazyData: true
+Imports: 
+    purrr,
+    stringr,
+    dplyr
+RoxygenNote: 7.3.3
+Depends: 
+    magick,
+    tesseract,
+    tidyverse

@@ -391,7 +391,7 @@ rename_peta <- function(kodekab = NULL) {
       message("🎉 Rename peta selesai! Sebanyak ", length(which(str_detect(dir(), paste0("^",kodekab)) == T)), " file scan peta berhasil di-rename!")
     } else {
       message("❌ Tidak ada kode kabupaten yang dimasukkan. Harap masukkan kode kabupaten Anda (contoh: \"3575\") \n")
-      return(invisible(NULL))
+      return(invisible(NULL)) # handle null argument kodekab
     }
   } else {
     message("❌ Tidak ada file JPG dalam folder ini. Silakan pindah ke direktori yang berisi file scan peta!\n")

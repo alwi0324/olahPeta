@@ -72,6 +72,15 @@ crop_corner <- function(img, corner = c("topleft", "topright", "bottomright")) {
 #' # rename_peta(kodekab = "3273")
 #' }
 rename_peta <- function(kodekab = NULL) {
+  # Fungsi untuk mengekstrak kode dari gambar (biar gak redundant)
+  extract_kode_from_image <- function(image_object, ocr_engine) {
+    text <- ocr(image_object, ocr_engine)
+    text <- gsub("[§$]", "5", text)
+    kode <- regmatches(text, regexpr("[0-9]{14}", text))
+    return(kode)
+  }
+  sudut_rotasi <- c(0, 90, 180, 270) # Daftar sudut yang akan dicoba
+
   idsls <- c()
   files <- dir()
   files <- files[grepl("\\.jpg$", files, ignore.case = TRUE)]
@@ -181,56 +190,47 @@ rename_peta <- function(kodekab = NULL) {
                 } else {
                   # baca seluruh gambar yang diputar
                   cat("Membaca seluruh gambar untuk mendapatkan kode SLS\n")
-                  text <- ocr(gbr, eng)
-                  text <- gsub("[§$]", "5", text)
-                  kode <- regmatches(text, regexpr("[0-9]{14}", text))
 
-                  if (!is_empty(kode)) {
-                    new_name <- paste0(kode, ".jpg")
-                    file.rename(files[i], file.path(".", new_name))
-                    message("✅ Rename file berhasil: ", files[i], " -> ", new_name,"\n")
-                  } else {
-                    cat("Sedang memutar gambar sejauh 90 derajat\n")
-                    putar <- image_rotate(gbr, 90)
-                    text <- ocr(putar, eng)
-                    text <- gsub("[§$]", "5", text)
-                    kode <- regmatches(text, regexpr("[0-9]{14}", text))
+                  # Variabel untuk melacak status
+                  kode_ditemukan <- FALSE
 
-                    if (!is_empty(kode)) {
-                      new_name <- paste0(kode, ".jpg")
-                      file.rename(files[i], file.path(".", new_name))
-                      image_write(putar, path = file.path(".", new_name), format = "jpg")
-                      message("✅ Rename dan putar file berhasil: ", files[i], " -> ", new_name,"\n")
+                  # Loop untuk setiap sudut rotasi
+                  eng <- tesseract("eng")
+                  for (sudut in sudut_rotasi) {
+                    # Tentukan gambar mana yang akan diproses
+                    # Jika sudut 0, gunakan gambar asli. Jika tidak, putar gambar.
+                    if (sudut == 0) {
+                      cat("Membaca gambar asli (0 derajat)...\n")
+                      gambar_proses <- gbr
                     } else {
-                      cat("Sedang memutar gambar sejauh 180 derajat\n")
-                      putar <- image_rotate(gbr, 180)
-                      text <- ocr(putar, eng)
-                      text <- gsub("[§$]", "5", text)
-                      kode <- regmatches(text, regexpr("[0-9]{14}", text))
-
-                      if (!is_empty(kode)) {
-                        new_name <- paste0(kode, ".jpg")
-                        file.rename(files[i], file.path(".", new_name))
-                        image_write(putar, path = file.path(".", new_name), format = "jpg")
-                        message("✅ Rename dan putar file berhasil: ", files[i], " -> ", new_name,"\n")
-                      } else {
-                        cat("Sedang memutar gambar sejauh 270 derajat\n")
-                        putar <- image_rotate(gbr, 270)
-                        text <- ocr(putar, eng)
-                        text <- gsub("[§$]", "5", text)
-                        kode <- regmatches(text, regexpr("[0-9]{14}", text))
-
-                        if (!is_empty(kode)) {
-                          new_name <- paste0(kode, ".jpg")
-                          file.rename(files[i], file.path(".", new_name))
-                          image_write(putar, path = file.path(".", new_name), format = "jpg")
-                          message("✅ Rename dan putar file berhasil: ", files[i], " -> ", new_name,"\n")
-                        } else {
-                          message("❌ Gagal mengambil kode SLS dari file scan peta ", files[i],". Harap periksa file scan peta!\n")
-                        }
-                      }
+                      cat(paste0("Memutar dan membaca gambar (", sudut, " derajat)...\n"))
+                      gambar_proses <- image_rotate(gbr, sudut)
                     }
 
+                    # Coba ekstrak kode dari gambar yang sedang diproses
+                    kode <- extract_kode_from_image(gambar_proses, eng)
+
+                    # Jika kode berhasil ditemukan
+                    if (!is_empty(kode)) {
+                      new_name <- paste0(kode, ".jpg")
+
+                      # Ganti nama file asli
+                      file.rename(files[i], file.path(".", new_name))
+
+                      # Jika gambar diputar (bukan gambar asli), simpan versi yang sudah diputar
+                      if (sudut > 0) {
+                        image_write(gambar_proses, path = file.path(".", new_name), format = "jpg")
+                      }
+
+                      message("✅ Rename file berhasil: ", files[i], " -> ", new_name, "\n")
+                      kode_ditemukan <- TRUE # Set status menjadi TRUE
+                      break # Hentikan loop karena kode sudah ditemukan
+                    }
+                  }
+
+                  # Jika setelah semua rotasi dicoba dan kode tetap tidak ditemukan
+                  if (!kode_ditemukan) {
+                    message("❌ Gagal mengambil kode SLS dari file: ", files[i], ". Harap periksa file scan peta!\n")
                   }
                 }
               }
@@ -321,56 +321,47 @@ rename_peta <- function(kodekab = NULL) {
                 } else {
                   # baca seluruh gambar yang diputar
                   cat("Membaca seluruh gambar untuk mendapatkan kode SLS\n")
-                  text <- ocr(gbr, eng)
-                  text <- gsub("[§$]", "5", text)
-                  kode <- regmatches(text, regexpr("[0-9]{14}", text))
 
-                  if (!is_empty(kode)) {
-                    new_name <- paste0(kode, ".jpg")
-                    file.rename(files[i], file.path(".", new_name))
-                    message("✅ Rename file berhasil: ", files[i], " -> ", new_name,"\n")
-                  } else {
-                    cat("Sedang memutar gambar sejauh 90 derajat\n")
-                    putar <- image_rotate(gbr, 90)
-                    text <- ocr(putar, eng)
-                    text <- gsub("[§$]", "5", text)
-                    kode <- regmatches(text, regexpr("[0-9]{14}", text))
+                  # Variabel untuk melacak status
+                  kode_ditemukan <- FALSE
 
-                    if (!is_empty(kode)) {
-                      new_name <- paste0(kode, ".jpg")
-                      file.rename(files[i], file.path(".", new_name))
-                      image_write(putar, path = file.path(".", new_name), format = "jpg")
-                      message("✅ Rename dan putar file berhasil: ", files[i], " -> ", new_name,"\n")
+                  # Loop untuk setiap sudut rotasi
+                  eng <- tesseract("eng")
+                  for (sudut in sudut_rotasi) {
+                    # Tentukan gambar mana yang akan diproses
+                    # Jika sudut 0, gunakan gambar asli. Jika tidak, putar gambar.
+                    if (sudut == 0) {
+                      cat("Membaca gambar asli (0 derajat)...\n")
+                      gambar_proses <- gbr
                     } else {
-                      cat("Sedang memutar gambar sejauh 180 derajat\n")
-                      putar <- image_rotate(gbr, 180)
-                      text <- ocr(putar, eng)
-                      text <- gsub("[§$]", "5", text)
-                      kode <- regmatches(text, regexpr("[0-9]{14}", text))
-
-                      if (!is_empty(kode)) {
-                        new_name <- paste0(kode, ".jpg")
-                        file.rename(files[i], file.path(".", new_name))
-                        image_write(putar, path = file.path(".", new_name), format = "jpg")
-                        message("✅ Rename dan putar file berhasil: ", files[i], " -> ", new_name,"\n")
-                      } else {
-                        cat("Sedang memutar gambar sejauh 270 derajat\n")
-                        putar <- image_rotate(gbr, 270)
-                        text <- ocr(putar, eng)
-                        text <- gsub("[§$]", "5", text)
-                        kode <- regmatches(text, regexpr("[0-9]{14}", text))
-
-                        if (!is_empty(kode)) {
-                          new_name <- paste0(kode, ".jpg")
-                          file.rename(files[i], file.path(".", new_name))
-                          image_write(putar, path = file.path(".", new_name), format = "jpg")
-                          message("✅ Rename dan putar file berhasil: ", files[i], " -> ", new_name,"\n")
-                        } else {
-                          message("❌ Gagal mengambil kode SLS dari file scan peta ", files[i],". Harap periksa file scan peta!\n")
-                        }
-                      }
+                      cat(paste0("Memutar dan membaca gambar (", sudut, " derajat)...\n"))
+                      gambar_proses <- image_rotate(gbr, sudut)
                     }
 
+                    # Coba ekstrak kode dari gambar yang sedang diproses
+                    kode <- extract_kode_from_image(gambar_proses, eng)
+
+                    # Jika kode berhasil ditemukan
+                    if (!is_empty(kode)) {
+                      new_name <- paste0(kode, ".jpg")
+
+                      # Ganti nama file asli
+                      file.rename(files[i], file.path(".", new_name))
+
+                      # Jika gambar diputar (bukan gambar asli), simpan versi yang sudah diputar
+                      if (sudut > 0) {
+                        image_write(gambar_proses, path = file.path(".", new_name), format = "jpg")
+                      }
+
+                      message("✅ Rename file berhasil: ", files[i], " -> ", new_name, "\n")
+                      kode_ditemukan <- TRUE # Set status menjadi TRUE
+                      break # Hentikan loop karena kode sudah ditemukan
+                    }
+                  }
+
+                  # Jika setelah semua rotasi dicoba dan kode tetap tidak ditemukan
+                  if (!kode_ditemukan) {
+                    message("❌ Gagal mengambil kode SLS dari file: ", files[i], ". Harap periksa file scan peta!\n")
                   }
                 }
               }
@@ -386,7 +377,11 @@ rename_peta <- function(kodekab = NULL) {
       b <- Sys.time()
       menit <- floor(time_length(b-a)/60)
       detik <- floor(time_length(b-a)%%60)
-      message(paste0("Durasi untuk rename file scan peta sebanyak ", length(files), " file adalah ", menit, " menit ", detik, " detik.\n"))
+      if (menit == 0) {
+        message(paste0("Durasi untuk rename file scan peta sebanyak ", length(files), " file adalah ", detik, " detik.\n"))
+      } else {
+        message(paste0("Durasi untuk rename file scan peta sebanyak ", length(files), " file adalah ", menit, " menit ", detik, " detik.\n"))
+      }
 
       message("🎉 Rename peta selesai! Sebanyak ", length(which(str_detect(dir(), paste0("^",kodekab)) == T)), " file scan peta berhasil di-rename!")
     } else {

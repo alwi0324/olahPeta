@@ -19,3 +19,5 @@ Depends:
     magick,
     tesseract,
     tidyverse
+URL: https://github.com/alwi0324/olahPeta
+BugReports: https://github.com/alwi0324/olahPeta/issues

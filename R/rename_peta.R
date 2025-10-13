@@ -55,9 +55,8 @@ crop_corner <- function(img, corner = c("topleft", "topright", "bottomright")) {
 }
 
 #' @title Rename Scanned Map Files using OCR
-#' @description This function automatically renames multiple JPEG map files in
-#'   the current working directory based on a 14-digit SLS code found within
-#'   the image.
+#' @description Automatically renames and rotates multiple JPEG map files in the current
+#'   working directory based on a 14-digit SLS code found within the image.
 #' @param kodekab A character string representing the district/municipality
 #'   code to verify the renamed files.
 #' @return The function is called for its side effect of renaming files.

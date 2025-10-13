@@ -60,7 +60,7 @@ library(olahPeta)
 <br>
 
 ## 🖥️ Output
-Here is the output for renaming 100 scanned map images.
+🎉 Here is the output for renaming 100 scanned map images.
 ![Log rename](https://github.com/alwi0324/olahPeta/blob/master/man/sukses%20rename.PNG)
 
 <br>

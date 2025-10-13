@@ -7,8 +7,8 @@
 ## ✨ Features
 
 - 🔥 **Fast scan**  
-  Performs OCR only on specific regions of the map to read the area code, then automatically renames the file based on the detected code.
-  It also detects and corrects the image orientation to ensure maps are not rotated incorrectly.
+  Performs **OCR only on specific regions of the map** to read the area code, then automatically renames the file based on the detected code.
+  It also detects and **corrects the image orientation** to ensure maps are not rotated incorrectly.
 
 - ⚙️ **Handles thousands of files safely**  
   Uses `tryCatch()` and `gc()` to process large batches efficiently while keeping RAM usage under control.
@@ -44,7 +44,7 @@ library(olahPeta)
 ## ▶️ Usage
 
 1. Make sure all scanned JPG maps are of good quality, with **no folds or creases**, especially **in the corner where the SLS code is located**.
-2. Set the working directory to the path that contains scanned JPG maps.  
+2. Set working directory to the path that contains scanned JPG maps.  
 
    ```r
    setwd("path/to/your/scanned_maps")

@@ -15,15 +15,14 @@ The function is called for its side effect of renaming files.
   It also prints messages to the console about the progress and results.
 }
 \description{
-This function automatically renames multiple JPEG map files in
-  the current working directory based on a 14-digit SLS code found within
-  the image.
+Automatically renames and rotates multiple JPEG map files in the
+  current working directory based on a 14-digit SLS code found within the image.
 }
 \examples{
 \dontrun{
 # To run this function, make sure you have .jpg files in your
 # working directory.
 # setwd("path/to/your/maps")
-# rename_peta(kodekab = "3273")
+# rename_peta(kodekab = "3575")
 }
 }

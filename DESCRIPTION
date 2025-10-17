@@ -1,7 +1,7 @@
 Package: olahPeta
 Type: Package
-Title: All-in-One System for Managing BPS Census and Survey Maps
-Version: 1.2.0
+Title: Automated Renaming of BPS Census/Survey Maps Using OCR
+Version: 1.3.0
 Author: @alwi0324
 Maintainer: Emha Alwi Al Makky <emhaalwialmakky@gmail.com>
 Description: Provides functions to automatically rename a batch of scanned
@@ -10,14 +10,18 @@ License: What license is it under?
 Encoding: UTF-8
 LazyData: true
 Imports: 
+    data.table,
     purrr,
+    sf,
     stringr,
     dplyr,
     magick,
     tesseract
 RoxygenNote: 7.3.3
 Depends: 
+    data.table,
     magick,
+    sf,
     tesseract,
     tidyverse
 URL: https://github.com/alwi0324/olahPeta

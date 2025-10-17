@@ -397,3 +397,65 @@ rename_peta <- function(kodekab = NULL) {
     message("❌ Tidak ada file JPG dalam folder ini. Silakan pindah ke direktori yang berisi file scan peta!\n")
   }
 }
+
+#' @title Organize Scanned Map Files
+#' @description Organizing scanned map files based on the SLS codes
+#'   and creating directories that correspond to each SLS code.
+#' @param kodekab A character string representing the district/municipality
+#'   code to filter files in this directory.
+#' @return The function is called for its side effect of organizing files.
+#'   It also prints messages to the console about the progress and results.
+#' @importFrom purrr is_empty
+#' @export
+#' @examples
+#' \dontrun{
+#' # Make sure your working directory contains scanned map files
+#' # starting with kodekab.
+#' # setwd("path/to/your/maps")
+#' # org_peta(kodekab = "3273")
+#' }
+org_peta <- function(kodekab = NULL) {
+  all_files <- dir() #ambil semua file di folder ini
+  maps <- list.files(pattern = paste0("^", kodekab)) #ambil semua file berawalan kode kabkot
+
+  # pastikan semua file berawalan kode kabkot
+  if (!is_empty(maps)) {
+    # kodekab harus ada
+    if (!is.null(kodekab)) {
+      kecs <- substr(maps, 1, 7) %>% unique()
+      vils <- substr(maps, 1, 10) %>% unique()
+
+      # bikin folder kecamatan sekalian folder desa di dalamnya
+      for (k in kecs) {
+        cat(paste0("Membuat folder ", k, " di direktori ini\n"))
+        dir.create(k)
+
+        this.vils <- vils[grepl(paste0("^",k), vils)]
+        for (v in this.vils) {
+          cat(paste0("Membuat folder ", k, "/",v,"\n"))
+          dir.create(paste0(k,"/",v))
+
+          maps.vils <- maps[grepl(paste0("^", k, substr(v,8,10)), maps)]
+
+          # pindahkan ke folder desa yang sesuai
+          for (m in maps.vils) {
+            cat(paste0("Sedang memindahkan peta ", m, " ke dalam folder ", k, "/", v,"\n"))
+            file.rename(m, paste0(k, "/", v, "/", m))
+          }
+          rm(m)
+        }
+        rm(v)
+      }
+      rm(k)
+
+      message("\n🎉 Pemindahan file scan peta selesai. Sebanyak ", length(maps), " file scan peta berhasil dipindahkan ke folder yang sesuai!\n")
+
+    } else {
+      message("❌ Tidak ada kode kabupaten yang dimasukkan. Harap masukkan kode kabupaten Anda (contoh: \"3575\") \n")
+      return(invisible(NULL)) # handle null argument kodekab
+    }
+  } else {
+    message("❌ Tidak ada file scan peta yang berawalan kode kabupaten/kota: ", kodekab," di folder ini. Mohon masukkan kode kabupaten/kota yang sesuai!\n")
+  }
+
+}

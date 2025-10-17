@@ -94,8 +94,8 @@ rename_peta <- function(kodekab = NULL) {
       for (i in 1:length(files)) {
         cat(paste0("Sedang membaca peta ke-",i," dari ",length(files), " peta\n"))
         
-        # Reset engine setiap 30 file untuk menghindari error cache
-        if (i %% 30 == 0) {
+        # Reset engine setiap 50 file untuk menghindari error cache
+        if (i %% 50 == 0) {
           invisible(gc())
           eng <<- tesseract("eng")
           message("🔄 Engine tesseract direset ulang.")

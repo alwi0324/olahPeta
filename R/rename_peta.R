@@ -403,18 +403,22 @@ rename_peta <- function(kodekab = NULL) {
 #'   and creating directories that correspond to each SLS code.
 #' @param kodekab A character string representing the district/municipality
 #'   code to filter files in this directory.
+#' @param datawil A data frame (csv/geojson file) containing region information,
+#'   typically including province, district/municipality, and village information.
 #' @return The function is called for its side effect of organizing files.
 #'   It also prints messages to the console about the progress and results.
 #' @importFrom purrr is_empty
+#' @importFrom data.table fread
+#' @importFrom sf st_read
 #' @export
 #' @examples
 #' \dontrun{
 #' # Make sure your working directory contains scanned map files
 #' # starting with kodekab.
 #' # setwd("path/to/your/maps")
-#' # org_peta(kodekab = "3273")
+#' # org_peta(kodekab = "3273", datawil = "my final sls.geojson")
 #' }
-org_peta <- function(kodekab = NULL) {
+org_peta <- function(kodekab = NULL, datawil = NULL) {
   all_files <- dir() #ambil semua file di folder ini
   maps <- list.files(pattern = paste0("^", kodekab)) #ambil semua file berawalan kode kabkot
 
@@ -425,17 +429,53 @@ org_peta <- function(kodekab = NULL) {
       kecs <- substr(maps, 1, 7) %>% unique()
       vils <- substr(maps, 1, 10) %>% unique()
 
+      if (!is.null(datawil)) {
+        if (str_detect(datawil, "geojson")) {
+          idwil <- st_read(datawil, quiet = T)
+          Sys.sleep(1)
+          for (i in 1:length(kecs)) {
+            kecs[i] <- paste0("[", kecs[i], "] ", filter(idwil, kdkec == substr(kecs[i],5,7))$nmkec[1])
+          }
+
+          for (j in 1:length(vils)) {
+            vils[j] <- paste0("[", vils[j], "] ", filter(idwil, kdkec == substr(vils[j],5,7), kddesa == substr(vils[j],8,10))$nmdesa[1])
+          }
+
+        } else {
+          idwil <- fread(datawil)
+          for (i in 1:length(kecs)) {
+            kecs[i] <- paste0("[", kecs[i], "] ", filter(idwil, idkec == kecs[i])[1,2])
+          }
+
+          for (j in 1:length(vils)) {
+            vils[j] <- paste0("[", vils[j], "] ", filter(idwil, iddesa == vils[j])[,4])
+          }
+        }
+
+        rm(i)
+        rm(j)
+      }
+
       # bikin folder kecamatan sekalian folder desa di dalamnya
       for (k in kecs) {
         cat(paste0("Membuat folder ", k, " di direktori ini\n"))
         dir.create(k)
 
-        this.vils <- vils[grepl(paste0("^",k), vils)]
+        if (!is.null(datawil)) {
+          this.vils <- vils[grepl(paste0("^\\[", substr(k,2,8)), vils)]
+        } else {
+          this.vils <- vils[grepl(paste0("^", k), vils)]
+        }
+
         for (v in this.vils) {
           cat(paste0("Membuat folder ", k, "/",v,"\n"))
           dir.create(paste0(k,"/",v))
 
-          maps.vils <- maps[grepl(paste0("^", k, substr(v,8,10)), maps)]
+          if (!is.null(datawil)) {
+            maps.vils <- maps[grepl(paste0("^", substr(k,2,8), substr(v,9,11)), maps)]
+          } else {
+            maps.vils <- maps[grepl(paste0("^", k, substr(v,8,10)), maps)]
+          }
 
           # pindahkan ke folder desa yang sesuai
           for (m in maps.vils) {
@@ -444,6 +484,7 @@ org_peta <- function(kodekab = NULL) {
           }
           rm(m)
         }
+        cat("\n")
         rm(v)
       }
       rm(k)

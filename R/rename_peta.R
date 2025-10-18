@@ -421,62 +421,72 @@ rename_peta <- function(kodekab = NULL) {
 org_peta <- function(kodekab = NULL, datawil = NULL) {
   all_files <- dir() #ambil semua file di folder ini
   maps <- list.files(pattern = paste0("^", kodekab)) #ambil semua file berawalan kode kabkot
-
+  
   # pastikan semua file berawalan kode kabkot
   if (!is_empty(maps)) {
     # kodekab harus ada
     if (!is.null(kodekab)) {
       kecs <- substr(maps, 1, 7) %>% unique()
       vils <- substr(maps, 1, 10) %>% unique()
-
+      
       if (!is.null(datawil)) {
         if (str_detect(datawil, "geojson")) {
           idwil <- st_read(datawil, quiet = T)
           Sys.sleep(1)
           for (i in 1:length(kecs)) {
-            kecs[i] <- paste0("[", kecs[i], "] ", filter(idwil, kdkec == substr(kecs[i],5,7))$nmkec[1])
+            hasilKec <- filter(idwil, kdkec == substr(kecs[i],5,7))
+            if (nrow(hasilKec)) {
+              kecs[i] <- paste0("[", kecs[i], "] ", hasilKec$nmkec[1])
+            } else {
+              stop("❌ Tidak ditemukan kecamatan dengan kode: ", kecs[i]," di file geojson. Proses selesai!\n")
+            }
           }
-
+          
           for (j in 1:length(vils)) {
-            vils[j] <- paste0("[", vils[j], "] ", filter(idwil, kdkec == substr(vils[j],5,7), kddesa == substr(vils[j],8,10))$nmdesa[1])
+            hasilDesa <- filter(idwil, kdkec == substr(vils[j],5,7), kddesa == substr(vils[j],8,10))
+            if (nrow(hasilDesa)) {
+              vils[j] <- paste0("[", vils[j], "] ", hasilDesa$nmdesa[1])
+            } else {
+              stop("❌ Tidak ditemukan desa dengan kode: ", vils[j]," di file geojson. Proses selesai!\n")
+            }
           }
-
+          
         } else {
           idwil <- fread(datawil)
           for (i in 1:length(kecs)) {
             kecs[i] <- paste0("[", kecs[i], "] ", filter(idwil, idkec == kecs[i])[1,2])
           }
-
+          
           for (j in 1:length(vils)) {
             vils[j] <- paste0("[", vils[j], "] ", filter(idwil, iddesa == vils[j])[,4])
           }
         }
-
+        
         rm(i)
         rm(j)
       }
-
+      
       # bikin folder kecamatan sekalian folder desa di dalamnya
       for (k in kecs) {
         cat(paste0("Membuat folder ", k, " di direktori ini\n"))
         dir.create(k)
-
+        
         if (!is.null(datawil)) {
           this.vils <- vils[grepl(paste0("^\\[", substr(k,2,8)), vils)]
         } else {
           this.vils <- vils[grepl(paste0("^", k), vils)]
         }
-
+        
         for (v in this.vils) {
           cat(paste0("Membuat folder ", k, "/",v,"\n"))
           dir.create(paste0(k,"/",v))
-
+          
           if (!is.null(datawil)) {
             maps.vils <- maps[grepl(paste0("^", substr(k,2,8), substr(v,9,11)), maps)]
           } else {
             maps.vils <- maps[grepl(paste0("^", k, substr(v,8,10)), maps)]
           }
-
+          
           # pindahkan ke folder desa yang sesuai
           for (m in maps.vils) {
             cat(paste0("Sedang memindahkan peta ", m, " ke dalam folder ", k, "/", v,"\n"))
@@ -488,9 +498,9 @@ org_peta <- function(kodekab = NULL, datawil = NULL) {
         rm(v)
       }
       rm(k)
-
+      
       message("\n🎉 Pemindahan file scan peta selesai. Sebanyak ", length(maps), " file scan peta berhasil dipindahkan ke folder yang sesuai!\n")
-
+      
     } else {
       message("❌ Tidak ada kode kabupaten yang dimasukkan. Harap masukkan kode kabupaten Anda (contoh: \"3575\") \n")
       return(invisible(NULL)) # handle null argument kodekab
@@ -498,5 +508,5 @@ org_peta <- function(kodekab = NULL, datawil = NULL) {
   } else {
     message("❌ Tidak ada file scan peta yang berawalan kode kabupaten/kota: ", kodekab," di folder ini. Mohon masukkan kode kabupaten/kota yang sesuai!\n")
   }
-
+  
 }

@@ -430,77 +430,85 @@ org_peta <- function(kodekab = NULL, datawil = NULL) {
       vils <- substr(maps, 1, 10) %>% unique()
       
       if (!is.null(datawil)) {
-        if (str_detect(datawil, "geojson")) {
-          idwil <- st_read(datawil, quiet = T)
-          Sys.sleep(1)
-          for (i in 1:length(kecs)) {
-            hasilKec <- filter(idwil, kdkec == substr(kecs[i],5,7))
-            if (nrow(hasilKec)) {
-              kecs[i] <- paste0("[", kecs[i], "] ", hasilKec$nmkec[1])
-            } else {
-              stop("❌ Tidak ditemukan kecamatan dengan kode: ", kecs[i]," di file geojson. Proses selesai!\n")
+        maps_moved <- c()
+        idwil <- st_read(datawil, quiet = T)
+        Sys.sleep(1)
+          
+        for (i in 1:length(kecs)) {
+          hasilKec <- filter(idwil, kdkec == substr(kecs[i],5,7))
+          if (nrow(hasilKec)) {
+            folderKec <- paste0("[", kodekab, hasilKec$kdkec[1], "] ", hasilKec$nmkec[1])
+              
+            # bikin folder kecamatan
+            cat(paste0("Membuat folder ", folderKec, " di direktori ini\n"))
+            dir.create(folderKec)
+              
+            # cek ketersediaan desa di maps yang ada di geojson
+            this.vils <- vils[grepl(paste0("^", substr(kecs[i],1,7)), vils)]
+            
+            for (j in 1:length(this.vils)) {
+              hasilDesa <- filter(hasilKec, kddesa == substr(this.vils[j],8,10))
+              
+              if (nrow(hasilDesa)) {
+                folderDesa <- paste0("[", kodekab, hasilDesa$kdkec[1], hasilDesa$kddesa[1], "] ", hasilDesa$nmdesa[1])
+                
+                # bikin folder desa
+                folderFinal <- paste0(folderKec, "/", folderDesa)
+                cat(paste0("Membuat folder ", folderFinal, "\n"))
+                dir.create(folderFinal, recursive = TRUE)
+                
+                # pindahkan peta ke folder desa yang sesuai
+                maps.vils <- maps[grepl(paste0("^", this.vils[j]), maps)]
+                maps_moved <- c(maps_moved, length(maps.vils))
+                
+                for (m in maps.vils) {
+                  cat(paste0("Sedang memindahkan peta ", m, " ke dalam folder ", folderFinal,"\n"))
+                  file.rename(m, paste0(folderFinal, "/", m))
+                }
+                rm(m)
+                
+              } else {
+                message("❌ Tidak ditemukan desa dengan kode: ", this.vils[j]," di file geojson. Peta ini di-skip!") # desa ini di-skip
+              }
             }
-          }
-          
-          for (j in 1:length(vils)) {
-            hasilDesa <- filter(idwil, kdkec == substr(vils[j],5,7), kddesa == substr(vils[j],8,10))
-            if (nrow(hasilDesa)) {
-              vils[j] <- paste0("[", vils[j], "] ", hasilDesa$nmdesa[1])
-            } else {
-              stop("❌ Tidak ditemukan desa dengan kode: ", vils[j]," di file geojson. Proses selesai!\n")
-            }
-          }
-          
-        } else {
-          idwil <- fread(datawil)
-          for (i in 1:length(kecs)) {
-            kecs[i] <- paste0("[", kecs[i], "] ", filter(idwil, idkec == kecs[i])[1,2])
-          }
-          
-          for (j in 1:length(vils)) {
-            vils[j] <- paste0("[", vils[j], "] ", filter(idwil, iddesa == vils[j])[,4])
-          }
-        }
-        
-        rm(i)
-        rm(j)
-      }
-      
-      # bikin folder kecamatan sekalian folder desa di dalamnya
-      for (k in kecs) {
-        cat(paste0("Membuat folder ", k, " di direktori ini\n"))
-        dir.create(k)
-        
-        if (!is.null(datawil)) {
-          this.vils <- vils[grepl(paste0("^\\[", substr(k,2,8)), vils)]
-        } else {
-          this.vils <- vils[grepl(paste0("^", k), vils)]
-        }
-        
-        for (v in this.vils) {
-          cat(paste0("Membuat folder ", k, "/",v,"\n"))
-          dir.create(paste0(k,"/",v))
-          
-          if (!is.null(datawil)) {
-            maps.vils <- maps[grepl(paste0("^", substr(k,2,8), substr(v,9,11)), maps)]
+            cat("\n")
+            rm(j)
+            
           } else {
-            maps.vils <- maps[grepl(paste0("^", k, substr(v,8,10)), maps)]
+              message("❌ Tidak ditemukan kecamatan dengan kode: ", kecs[i]," di file geojson. Peta ini di-skip!") # kecamatan ini di-skip
           }
-          
-          # pindahkan ke folder desa yang sesuai
-          for (m in maps.vils) {
-            cat(paste0("Sedang memindahkan peta ", m, " ke dalam folder ", k, "/", v,"\n"))
-            file.rename(m, paste0(k, "/", v, "/", m))
-          }
-          rm(m)
         }
-        cat("\n")
-        rm(v)
+        rm(i)
+        
+        message("\n🎉 Pemindahan file scan peta selesai. Sebanyak ", sum(maps_moved), " file scan peta berhasil dipindahkan ke folder yang sesuai!\n")
+        
+      } else {
+        for (k in kecs) {
+          cat(paste0("Membuat folder ", k, " di direktori ini\n"))
+          dir.create(k)
+          
+          this.vils <- vils[grepl(paste0("^", k), vils)]
+          
+          for (v in this.vils) {
+            cat(paste0("Membuat folder ", k, "/",v,"\n"))
+            dir.create(paste0(k,"/",v))
+            
+            maps.vils <- maps[grepl(paste0("^", k, substr(v,8,10)), maps)]
+            
+            # pindahkan ke folder desa yang sesuai
+            for (m in maps.vils) {
+              cat(paste0("Sedang memindahkan peta ", m, " ke dalam folder ", k, "/", v,"\n"))
+              file.rename(m, paste0(k, "/", v, "/", m))
+            }
+            rm(m)
+          }
+          cat("\n")
+          rm(v)
+        }
+        rm(k)
+        
+        message("\n🎉 Pemindahan file scan peta selesai. Sebanyak ", length(maps), " file scan peta berhasil dipindahkan ke folder yang sesuai!\n")
       }
-      rm(k)
-      
-      message("\n🎉 Pemindahan file scan peta selesai. Sebanyak ", length(maps), " file scan peta berhasil dipindahkan ke folder yang sesuai!\n")
-      
     } else {
       message("❌ Tidak ada kode kabupaten yang dimasukkan. Harap masukkan kode kabupaten Anda (contoh: \"3575\") \n")
       return(invisible(NULL)) # handle null argument kodekab

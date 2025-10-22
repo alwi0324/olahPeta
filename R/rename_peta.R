@@ -399,3 +399,125 @@ org_peta <- function(kodekab = NULL, datawil = NULL) {
   }
 
 }
+
+
+#' @title Check points outside their polygons
+#' @description Check points outside its SLS polygon by iddesa.
+#' @param ldmark A geojson file containing project name, project description, iddesa, project type, etc.
+#' @param poly_map A data frame (geojson file) containing region information,
+#'   typically including province, municipality/regency, district and village information.
+#' @return The function is called for check points outside their polygons and will save.
+#'   its result in Excel report.
+#' @importFrom sf st_read
+#' @importFrom sf st_intersects
+#' @importFrom sf st_drop_geometry
+#' @importFrom stringr str_detect
+#' @importFrom writexl write_xlsx
+#' @export
+#' @examples
+#' \dontrun{
+#' # Make sure your working directory contains landmark and digital map files
+#' # opa(ldmark = "my points.geojson", poly_map = "my final sls.geojson")
+#' }
+opa <- function(ldmark = NULL, poly_map = NULL) {
+  if (!is.null(ldmark)) {
+    if(!is.null(poly_map)) {
+
+      if(str_detect(ldmark, "geojson") && str_detect(poly_map, "geojson")) {
+        cat("Sedang membaca file geojson...\n")
+        landmarks <- st_read(ldmark, quiet = T)
+        sls <- st_read(poly_map, quiet = T)
+
+        idvil <- unique(landmarks$iddesa)
+
+        # filter desanya
+        if (length(idvil) == 1) {
+          vil_filter <- sls %>% filter(str_starts(idsls, idvil))
+        } else {
+          vil_filter <- sls %>% filter(str_starts(idsls, idvil[1]))
+          for (i in 2:length(idvil)) {
+            vil_filter <- rbind(vil_filter, sls %>% filter(str_starts(idsls, idvil[i])))
+          }
+          rm(i)
+        }
+
+        # Analisis titik
+        idsls_awal <- vil_filter$idsls
+        landmarks$idsls <- paste0(landmarks$iddesa, landmarks$nm_project)
+
+        # hanya proses yang BUKAN pemekaran
+        cat("Mengumpulkan idsls awal...\n")
+        landmarks <- landmarks %>% filter(idsls %in% idsls_awal)
+        idsls_ldmarks <- landmarks$idsls %>% unique()
+        idx_sls <- c()
+
+        for (l in idsls_ldmarks) {
+          idx_sls <- c(idx_sls, which(vil_filter$idsls == l))
+        }
+        rm(l)
+
+        # get number of points for each projects
+        n_point <- c()
+        for (i in idsls_ldmarks) {
+          n_point <- c(n_point, length(which(landmarks$idsls == i)))
+        }
+        rm(i)
+
+        # repeat idsls based on idx_sls and n_point
+        idsls_rep <- c()
+        for (i in 1:length(idx_sls)) {
+          idsls_rep <- c(idsls_rep, rep(vil_filter$idsls[idx_sls[i]], times = n_point[i]))
+        }
+        rm(i)
+
+        # get landmarks is inside/outside for each polygon
+        cat("Sedang mengidentifikasi landmark berdasarkan poligon SLS...\n")
+        hasil <- c()
+        for (i in 1:nrow(landmarks)) {
+          hasil <- c(hasil, st_intersects(landmarks[i,], vil_filter %>% filter(idsls == idsls_rep[i]), sparse = F)[1,])
+        }
+
+        # add to landmarks
+        landmarks$is_inside <- hasil
+        cat("Berhasil mengidentifikasi!\n")
+
+        landmarks_final <- landmarks %>% arrange(nm_project) %>% filter(is_inside == FALSE) %>% select(idsls,
+                                                                                                       nm_project,
+                                                                                                       deskripsi_project,
+                                                                                                       nama,
+                                                                                                       tipe_landmark,
+                                                                                                       user_creator_nama,
+                                                                                                       user_created_at,
+                                                                                                       user_upload_at,
+                                                                                                       photo_url)
+
+        landmarks_export <- st_drop_geometry(landmarks_final)
+        cat("Sedang mengekspor landmark ke file excel...\n")
+
+        # informasi waktu
+        t <- as.character(Sys.time())
+        t <- gsub(":", ".", unlist(strsplit(t, "\\."))[1])
+
+        file_name <- paste0("landmark_outside_polygon_", paste(unique(landmarks$iddesa), collapse = "_"), "_", t, ".xlsx")
+        write_xlsx(landmarks_export, file_name)
+        Sys.sleep(2)
+        if (file_name %in% dir()) {
+          message("✅ Berhasil mengekspor file excel dengan nama: ", file_name,"\n")
+        }
+
+
+      } else {
+        message("❗ Semua file harus berformat geojson!\n")
+      }
+
+
+    } else {
+      message("❌ Tidak ada file peta digital dimasukkan. Harap masukkan file peta digital berformat geojson!\n")
+      return(invisible(NULL)) # handle null poly_map
+    }
+
+  } else {
+    message("❌ Tidak ada file landmark yang dimasukkan. Harap masukkan file landmark yang ingin dianalisis! \n")
+    return(invisible(NULL)) # handle null argument ldmark
+  }
+}

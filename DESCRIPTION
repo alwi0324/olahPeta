@@ -20,6 +20,7 @@ Imports:
 RoxygenNote: 7.3.3
 Depends: 
     magick,
+    R (>= 3.5),
     sf,
     tesseract,
     tidyverse,

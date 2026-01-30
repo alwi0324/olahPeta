@@ -1,4 +1,8 @@
-# 📦 olahPeta <a href="https://github.com/alwi0324/olahPeta"><img src="https://img.shields.io/badge/version-1.0.0-blue.svg" alt="version"></a> <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="license"></a>
+<p align="center">
+  <img src="[path/ke/gambar.png](https://github.com/user-attachments/assets/fb742e05-ca54-496a-b9eb-507945af6107)" alt="logo olahPeta" width="700">
+</p>
+
+# olahPeta <a href="https://github.com/alwi0324/olahPeta"><img src="https://img.shields.io/badge/version-1.0.0-blue.svg" alt="version"></a> <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="license"></a>
 
 `olahPeta` is an R package designed to automatically read, rename, and rotate (if necessary) multiple scanned BPS Census or Survey map images based on a 14-digit SLS code detected within each image using Optical Character Recognition (OCR).
 
@@ -20,7 +24,7 @@
   Reports the total processing time (in minutes and seconds) for all renamed files.
 
 - 📊 **Result Summary**  
-  Displays the number of successfully renamed maps according to the specified municipality/district code.
+  Displays the number of successfully renamed maps according to the specified municipality/regency code.
 
 <br>
 
@@ -54,7 +58,7 @@ library(olahPeta)
    rename_peta("5205")
    ```
 
-   The string "5205" represents the municipality/district code, which corresponds to the first four digits of the SLS code. Once the process is complete, the log will display the number of maps successfully renamed based on this municipality/district code.
+   The string "5205" (or it can also numeric) represents the municipality/regency code, which corresponds to the first four digits of the SLS code. Once the process is complete, the log will display the number of maps successfully renamed based on this municipality/regency code.
 4. Sit back and relax ☕ — the smart automation in olahPeta handles it all for you.
 
 <br>

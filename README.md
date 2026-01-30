@@ -12,13 +12,13 @@
 
 - 🔥 **Fast scan**  
   Performs **OCR only on specific regions of the map** to read the area code, then automatically renames the file based on the detected code.
-  It also detects and **corrects the image orientation** to ensure maps are not rotated incorrectly.
+  It also detects and **corrects the image orientation** to ensure maps are rotated correctly.
 
 - ⚙️ **Handles thousands of files safely**  
   Uses `tryCatch()` and `gc()` to process large batches efficiently while keeping RAM usage under control.
 
-- 🧠 **Smart JPG Filter**  
-  Automatically skips non-JPG files and processes only JPG images.
+- 🧠 **Smart JPG/PNG Filter**  
+  Automatically skips non-JPG/non-PNG files and processes only JPG/PNG images.
 
 - ⏱️ **Time Information**  
   Reports the total processing time (in minutes and seconds) for all renamed files.
@@ -36,6 +36,13 @@ Make sure devtools or remotes is already installed in your RStudio.
 install.packages("devtools")
 devtools::install_github("alwi0324/olahPeta")
 ```
+
+or
+
+```r
+remotes::install_github("alwi0324/olahPeta")
+```
+
 **Note:** If prompted to update certain packages (options like 1. All, 2. CRAN, etc.), simply press **ENTER** to skip. Wait until the installation process is complete and the message DONE (olahPeta) appears.
 
 After installation, activate the package with the following code:
@@ -48,7 +55,7 @@ library(olahPeta)
 ## ▶️ Usage
 
 1. Make sure all scanned JPG maps are of good quality, with **no folds or creases**, especially **in the corner where the SLS code is located**.
-2. Set working directory to the path that contains scanned JPG maps.  
+2. Set working directory to the path that contains scanned JPG/PNG maps.  
 
    ```r
    setwd("path/to/your/scanned_maps")

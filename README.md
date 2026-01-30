@@ -2,7 +2,7 @@
   <img src="https://github.com/alwi0324/olahPeta/blob/master/man/olahPeta%20green.jpeg" alt="logo olahPeta" width="300">
 </p>
 
-# olahPeta <a href="https://github.com/alwi0324/olahPeta"><img src="https://img.shields.io/badge/version-1.1.0-blue.svg" alt="version"></a> <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="license"></a>
+# olahPeta <a href="https://github.com/alwi0324/olahPeta"><img src="https://img.shields.io/badge/version-1.2.1-blue.svg" alt="version"></a> <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="license"></a>
 
 `olahPeta` is an R package designed to automatically read, rename, and rotate (if necessary) multiple scanned BPS Census or Survey map images based on a 14-digit SLS code detected within each image using Optical Character Recognition (OCR).
 

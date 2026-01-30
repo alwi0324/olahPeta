@@ -59,36 +59,36 @@ rename_peta <- function(kodekab = NULL) {
     kode <- regmatches(text, regexpr("[0-9]{14}", text))
     return(kode)
   }
-  
+
   idsls <- c()
   files <- dir()
-  files <- files[grepl("\\.jpg$", files, ignore.case = TRUE)]
-  
+  files <- files[grepl("\\.(jpg|png)$", files, ignore.case = TRUE)]
+
   # Pastikan di folder ini berisi semua file jpg
   if (!is_empty(files)) {
     # kodekab harus ada
     if (!is.null(kodekab)) {
       # waktu mulai
       a <- Sys.time()
-      
+
       for (i in 1:length(files)) {
         cat(paste0("Sedang membaca peta ke-",i," dari ",length(files), " peta\n"))
-        
+
         # Reset engine setiap 30 file untuk menghindari error cache
         if (i %% 30 == 0) {
           invisible(gc())
           eng <<- tesseract("eng")
           message("🔄 Engine tesseract direset ulang.")
         }
-        
+
         gbr <- image_orient(image_read(files[i]))
         cat(paste0("Sedang mengambil kode SLS peta ke-",i,"\n"))
-        
+
         kode <- crop_corner(gbr) # 1st try
-        
+
         if (!is.null(kode)) {
           idsls <- c(idsls, kode)
-          
+
           # jika tidak ada peta duplikat
           new_files <- substr(dir(), 1, nchar(dir())-4)
           if (length(which(new_files == kode)) == 0) {
@@ -99,15 +99,15 @@ rename_peta <- function(kodekab = NULL) {
           }
           file.rename(files[i], file.path(".", new_name))
           message("✅ Rename file berhasil: ", files[i], " -> ", new_name,"\n")
-          
+
         } else {
           # jika null, putar gambar 180 derajat lalu rename
           putar <- image_rotate(gbr, 180)
           kode <- crop_corner(putar) # 2nd try
-          
+
           if (!is.null(kode)) {
             idsls <- c(idsls, kode)
-            
+
             # jika tidak ada peta duplikat
             new_files <- substr(dir(), 1, nchar(dir())-4)
             if (length(which(new_files == kode)) == 0) {
@@ -119,15 +119,15 @@ rename_peta <- function(kodekab = NULL) {
             file.rename(files[i], file.path(".", new_name))
             image_write(putar, path = file.path(".", new_name), format = "jpg")
             message("✅ Rename dan putar file berhasil: ", files[i], " -> ", new_name,"\n")
-            
+
           } else {
             # jika masih null, putar 90 atau 270 derajat sampai kodenya berhasil dibaca di pojok kanan atas
             putar <- image_rotate(gbr, 90)
             kode <- crop_corner(putar) # 3rd try
-            
+
             if (!is.null(kode)) {
               idsls <- c(idsls, kode)
-              
+
               # jika tidak ada peta duplikat
               new_files <- substr(dir(), 1, nchar(dir())-4)
               if (length(which(new_files == kode)) == 0) {
@@ -139,15 +139,15 @@ rename_peta <- function(kodekab = NULL) {
               file.rename(files[i], file.path(".", new_name))
               image_write(putar, path = file.path(".", new_name), format = "jpg")
               message("✅ Rename dan putar file berhasil: ", files[i], " -> ", new_name,"\n")
-              
+
             } else {
               # jika masih null, putar 270 derajat
               putar <- image_rotate(gbr, 270)
               kode <- crop_corner(putar) # 4th try
-              
+
               if(!is.null(kode)) {
                 idsls <- c(idsls, kode)
-                
+
                 # jika tidak ada peta duplikat
                 new_files <- substr(dir(), 1, nchar(dir())-4)
                 if (length(which(new_files == kode)) == 0) {
@@ -159,15 +159,15 @@ rename_peta <- function(kodekab = NULL) {
                 file.rename(files[i], file.path(".", new_name))
                 image_write(putar, path = file.path(".", new_name), format = "jpg")
                 message("✅ Rename dan putar file berhasil: ", files[i], " -> ", new_name,"\n")
-                
+
               } else {
                 # baca seluruh gambar yang diputar
                 cat("Membaca seluruh gambar untuk mendapatkan kode SLS\n")
-                
+
                 # Variabel untuk melacak status
                 kode_ditemukan <- FALSE
                 sudut_rotasi <- c(0, 90, 180, 270) # Daftar sudut yang akan dicoba
-                
+
                 # Loop untuk setiap sudut rotasi
                 for (sudut in sudut_rotasi) {
                   # Tentukan gambar mana yang akan diproses
@@ -179,29 +179,29 @@ rename_peta <- function(kodekab = NULL) {
                     cat(paste0("Memutar dan membaca gambar (", sudut, " derajat)...\n"))
                     gambar_proses <- image_rotate(gbr, sudut)
                   }
-                  
+
                   # Coba ekstrak kode dari gambar yang sedang diproses
                   kode <- extract_kode_from_image(gambar_proses)
-                  
+
                   # Jika kode berhasil ditemukan
                   if (!is_empty(kode)) {
                     new_name <- paste0(kode, ".jpg")
-                    
+
                     # Ganti nama file asli
                     file.rename(files[i], file.path(".", new_name))
-                    
+
                     # Jika gambar diputar (bukan gambar asli), simpan versi yang sudah diputar
                     if (sudut > 0) {
                       image_write(gambar_proses, path = file.path(".", new_name), format = "jpg")
                     }
-                    
+
                     message("✅ Rename file berhasil: ", files[i], " -> ", new_name, "\n")
                     kode_ditemukan <- TRUE # Set status menjadi TRUE
                     break # Hentikan loop karena kode sudah ditemukan
                   }
                 }
                 rm(sudut)
-                
+
                 # Jika setelah semua rotasi dicoba dan kode tetap tidak ditemukan
                 if (!kode_ditemukan) {
                   # naikkan dpi gambar jadi 200dpi
@@ -210,12 +210,12 @@ rename_peta <- function(kodekab = NULL) {
                   scale_factor <- 200/img_dpi # faktor perbesaran
                   new_width  <- round(image_info(gbr)$width * scale_factor)
                   new_height  <- round(image_info(gbr)$height * scale_factor)
-                  
+
                   gbr_resampled <- image_resize(gbr, paste0(new_width, "x", new_height)) # sudah jadi 200dpi
                   cat("Berhasil menaikkan resolusi gambar!\n")
-                  
+
                   kode_ditemukan <- FALSE
-                  
+
                   for (sudut in sudut_rotasi) {
                     if (sudut == 0) {
                       cat("Membaca gambar baru (0 derajat)...\n")
@@ -224,39 +224,39 @@ rename_peta <- function(kodekab = NULL) {
                       cat(paste0("Memutar gambar baru (", sudut, " derajat)...\n"))
                       gambar_proses <- image_rotate(gbr_resampled, sudut)
                     }
-                    
+
                     kode <- extract_kode_from_image(gambar_proses)
-                    
+
                     if (!is_empty(kode)) {
                       new_name <- paste0(kode, "_resampled.jpg")
-                      
+
                       # save as gambar_resampled and delete old one
                       cat("Kode SLS ditemukan! Gambar baru disimpan...\n")
                       image_write(gambar_proses, path = file.path(".", new_name), format = "jpg")
                       cat(paste0("Menghapus gambar lama: ", files[i], "\n"))
                       file.remove(files[i])
-                      
+
                       message("✅ Simpan file baru berhasil: ", files[i], " -> ", new_name, "\n")
                       kode_ditemukan <- TRUE # Set status menjadi TRUE
                       break # Hentikan loop karena kode sudah ditemukan
                     }
                   }
-                  
+
                   if (!kode_ditemukan) {
                     message("❌ Gagal mengambil kode SLS dari file: ", files[i], ". Harap periksa file scan peta!\n")
                   }
-                  
+
                 }
               }
             }
           }
-          
+
         }
       }
-      
+
       # waktu selesai
       b <- Sys.time()
-      
+
       berhasil <- length(which(str_detect(dir(), paste0("^",kodekab)) == T))
       if (berhasil > 0) {
         menit <- floor(time_length(b-a)/60)
@@ -266,17 +266,17 @@ rename_peta <- function(kodekab = NULL) {
         } else {
           message(paste0("Durasi untuk rename file scan peta sebanyak ", length(files), " file adalah ", menit, " menit ", detik, " detik.\n"))
         }
-        
+
         message("🎉 Rename peta selesai! Sebanyak ", berhasil, " file scan peta berhasil di-rename!")
       } else {
         message("❌ Tidak ada file peta yang bisa di-rename. Harap pastikan file scan peta tidak terlipat/kotak berisi kode SLS terbaca dengan jelas.")
       }
     } else {
-      message("❌ Tidak ada kode kabupaten yang dimasukkan. Harap masukkan kode kabupaten Anda (contoh: \"3575\") \n")
+      message("❌ Tidak ada kode kabupaten yang dimasukkan. Harap masukkan kode kabupaten Anda (contoh: 3575) \n")
       return(invisible(NULL)) # handle null argument kodekab
     }
   } else {
-    message("❌ Tidak ada file JPG dalam folder ini. Silakan pindah ke direktori yang berisi file scan peta!\n")
+    message("❌ Tidak ada file scan peta (JPG/PNG) dalam folder ini. Silakan pindah ke direktori yang berisi file scan peta!\n")
   }
 }
 
@@ -520,4 +520,137 @@ opa <- function(ldmark = NULL, poly_map = NULL) {
     message("❌ Tidak ada file landmark yang dimasukkan. Harap masukkan file landmark yang ingin dianalisis! \n")
     return(invisible(NULL)) # handle null argument ldmark
   }
+}
+
+#' @title Mengidentifikasi usaha/perusahaan hasil profiling SBR yang berada di luar desa
+#' @description Mengidentifikasi usaha/perusahaan hasil profiling SBR yang berada di luar desa berdasarkan iddesa.
+#' @param dir.titik Direktori file csv hasil scraping di website/aplikasi Matchapro.
+#' @param dir.desa.sls Direktori file geojson peta desa/SLS terbaru (gunakan peta hasil Pemetaan Wilkerstat SE2026)
+#'   untuk mengidentifikasi usaha-usaha/perusahaan-perusahaan yang berada di luar desa masing-masing.
+#' @return Fungsi ini akan mengembalikan file excel dan geojson yang berisi
+#'   usaha-usaha/perusahaan-perusahaan yang berada di luar desa masing-masing.
+#' @importFrom sf st_read
+#' @importFrom sf st_intersects
+#' @importFrom sf st_drop_geometry
+#' @importFrom sf st_union
+#' @importFrom sf st_write
+#' @importFrom stringr str_detect
+#' @importFrom writexl write_xlsx
+#' @export
+#' @examples
+#' \dontrun{
+#' # sbr_out_desa(dir.titik = "direktori_usaha_full_all_columns_2026.csv", dir.desa.sls = "Final_Desa_202415205.geojson")
+#' }
+sbr_out_desa <- function(dir.titik = NULL, dir.desa.sls = NULL, target = c("gc", "profiling")) {
+  # Validasi parameter
+  params <- c(dir.titik, dir.desa.sls)
+
+  if (all(!is.null(params))) {
+    # Load dataframe titik usaha
+    if (str_detect(dir.titik, ".csv")) {
+      titik <- read.csv(dir.titik)
+
+      # Load geojson desa
+      if (str_detect(dir.desa.sls, "geojson")) {
+        desa <- st_read(dir.desa.sls, quiet = T)
+
+        # cek apakah nama kolomnya mengandung iddesa
+        if ("iddesa" %in% colnames(desa)) {
+          cat("Sedang membaca file geojson desa...\n")
+          Sys.sleep(2)
+          desa <- desa %>% arrange(iddesa)
+        } else {
+          # poligonnya SLS
+          cat("Sedang membaca file geojson SLS...\n")
+          Sys.sleep(2)
+          desa <- desa %>% arrange(idsls) %>% filter(str_starts(substr(idsls,11,14), "0")) %>% mutate(iddesa = substr(idsls,1,10))
+          desa <- desa %>% st_make_valid() %>% group_by(iddesa, nmkec, nmdesa) %>% summarise(geometry = st_union(geometry))
+        }
+
+        # cek titik di GC atau profiling
+        keg <- match.arg(target)
+
+        if (keg == "gc") {
+          # buang titik/usaha yang NA atau kosong
+          titik.fix <- titik %>% filter(!is.na(gcs_result), latlong_status_gc == "valid")
+
+          # ubah ke df spasial
+          st.titik <- st_as_sf(titik.fix, coords = c("longitude_gc", "latitude_gc"), crs = 4326)
+        } else if (keg == "profiling") {
+          # buang titik/usaha yang NA atau kosong
+          titik.fix <- titik %>% filter(!is.na(latitude), latlong_status == "valid")
+
+          # ubah ke df spasial
+          st.titik <- st_as_sf(titik.fix, coords = c("longitude", "latitude"), crs = 4326)
+        }
+
+        # filter yang iddesanya lengkap (10 digit)
+        st.titik.fix <- st.titik %>% filter(nchar(kode_wilayah) == 10) %>% arrange(kode_wilayah)
+
+        message(paste0("Ditemukan sebanyak ", nrow(st.titik.fix), " perusahaan yang memiliki titik koordinat.\n"))
+        message("Akan memulai proses identifikasi titik koordinat perusahaan tersebut dalam 5 detik...\n\n")
+        Sys.sleep(5.5)
+        message("MULAI!\n")
+        Sys.sleep(1)
+
+        # get iddesa unik
+        iddesa <- st.titik.fix$kode_wilayah %>% unique() %>% as.character()
+
+        # Analisis titik
+        is.inside <- sapply(1:nrow(st.titik.fix), function(i) {
+          cat(paste0("Sedang memproses perusahaan ke-",i," dari ", nrow(st.titik.fix), " perusahaan\n"))
+          id <- st.titik.fix$kode_wilayah[i]
+
+          # Ambil poligon desa yang kodenya cocok
+          poligon_target <- desa %>% filter(iddesa == id)
+
+          # Cek interaksi (sparse = FALSE agar dpt TRUE/FALSE tunggal)
+          res <- st_intersects(st.titik.fix$geometry[i], poligon_target$geometry, sparse = FALSE)
+
+          # Jika ada hasil, ambil yang pertama, jika tidak ada poligon cocok beri FALSE
+          if(length(res) > 0) return(res[1,1]) else return(FALSE)
+        })
+
+        message("\nSedang mengambil perusahaan yang titiknya di luar desa masing-masing...")
+        luar.desa <- which(is.inside == F)
+        hasil <- st.titik.fix[luar.desa,]
+
+        # ambil kolom yang diperlukan
+        if (keg == "gc") {
+          hasilxl <- hasil %>% select(idsbr, nama_usaha, alamat_usaha, kode_wilayah, nmkec, nmdesa, kegiatan_usaha, status_perusahaan, gc_username)
+        } else if (keg == "profiling") {
+          hasilxl <- hasil %>% select(idsbr, nama_usaha, alamat_usaha, kode_wilayah, nmkec, nmdesa, kegiatan_usaha, status_perusahaan)
+        }
+
+        message(paste0("Ditemukan sebanyak ", nrow(hasil), " usaha yang berada di luar desanya\n"))
+        message("Sedang mengekspor perusahaan yang di luar desa ke file excel dan geojson...\n")
+
+        hasil.export <- st_drop_geometry(hasilxl)
+
+        # informasi waktu
+        t <- as.character(Sys.time())
+        t <- gsub(":", ".", unlist(strsplit(t, "\\."))[1])
+
+        # save as excel
+        file_name <- paste0("usaha_di_luar_desa_", t)
+        writexl::write_xlsx(hasil.export, paste0(file_name, ".xlsx"))
+
+        # save as geojson
+        st_write(hasilxl, paste0(file_name, ".geojson"))
+
+        message("\n✅ Berhasil mengekspor file excel dengan nama: ", file_name,".xlsx")
+        message("✅ Berhasil mengekspor file geojson dengan nama: ", file_name,".geojson")
+        cat("Direktori hasil file ekspor:", getwd())
+      } else {
+        message("❗ File desa/SLS harus berformat geojson!\n")
+      }
+    } else {
+        message("❗ File hasil scraping usaha harus berformat csv!\n")
+    }
+
+  } else {
+    message("❌ Tentukan direktori usaha hasil scraping SBR dan direktori file geojson peta desa/SLS terlebih dahulu! \n")
+    return(invisible(NULL))
+  }
+
 }

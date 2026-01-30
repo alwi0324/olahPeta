@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="[path/ke/gambar.png](https://github.com/user-attachments/assets/fb742e05-ca54-496a-b9eb-507945af6107)" alt="logo olahPeta" width="700">
+  <img src="https://github.com/alwi0324/olahPeta/blob/master/man/olahPeta%20green.jpeg" alt="logo olahPeta" width="500">
 </p>
 
 # olahPeta <a href="https://github.com/alwi0324/olahPeta"><img src="https://img.shields.io/badge/version-1.0.0-blue.svg" alt="version"></a> <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="license"></a>

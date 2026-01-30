@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/alwi0324/olahPeta/blob/master/man/olahPeta%20green.jpeg" alt="logo olahPeta" width="500">
+  <img src="https://github.com/alwi0324/olahPeta/blob/master/man/olahPeta%20green.jpeg" alt="logo olahPeta" width="300">
 </p>
 
 # olahPeta <a href="https://github.com/alwi0324/olahPeta"><img src="https://img.shields.io/badge/version-1.0.0-blue.svg" alt="version"></a> <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="license"></a>
@@ -24,7 +24,7 @@
   Reports the total processing time (in minutes and seconds) for all renamed files.
 
 - 📊 **Result Summary**  
-  Displays the number of successfully renamed maps according to the specified municipality/regency code.
+  Displays the number of successfully renamed maps according to the specified regency/municipality code.
 
 <br>
 
@@ -58,7 +58,7 @@ library(olahPeta)
    rename_peta("5205")
    ```
 
-   The string "5205" (or it can also numeric) represents the municipality/regency code, which corresponds to the first four digits of the SLS code. Once the process is complete, the log will display the number of maps successfully renamed based on this municipality/regency code.
+   The string "5205" (or it can also numeric) represents the regency/municipality code, which corresponds to the first four digits of the SLS code. Once the process is complete, the log will display the number of maps successfully renamed based on this regency/municipality code.
 4. Sit back and relax ☕ — the smart automation in olahPeta handles it all for you.
 
 <br>

@@ -15,7 +15,7 @@
   Dimonitoring provinsi di kegiatan GC? Kini package ```olahPeta``` bisa memantau hasil GC mana saja yang ada di ~Planet Mars~ luar desa/kecamatan/bahkan pulau lain lhoo...
 
 - **Saat peta digital SLS dipilih, fungsi ```sbr_out_desa()``` akan membuang non SLS**
-  Hasil GC nyasar di sawah/hutan? Padahal masih di dalam desa. Nah lohh, sini monitoring mandiri dulu 🙂‍↔️
+  Hasil GC nyasar di sawah/hutan? Padahal masih di dalam desa. Nah lohh, sini monitoring mandiri dulu ☺️
   
 - **Export usaha-usaha yang berada di luar desa masing-masing ke file geojson**
   Gak percaya sama hasil excel? Cuss bisa dicek usaha-usahanya di QGIS bossquee 😎

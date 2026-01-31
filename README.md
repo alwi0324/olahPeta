@@ -6,8 +6,8 @@
 
 ## ❓ Apa yang baru nih??
 
-- **Memproses file PNG pada fungsi rename_peta**
-  Ribet dengan pengaturan file hasil scan peta? Gaass sob, file JPG/PNG masuk kok ☺️
+- **Memproses file PNG pada fungsi rename_peta**  
+  Ribet dengan pengaturan file hasil scan peta? Gaass sob, file JPG/PNG masuk kok. ☺️
   
 - **Pengecekan usaha-usaha yang berada di luar desa masing-masing pada kegiatan Groundcheck SBR**
   Dimonitoring provinsi di kegiatan GC? Kini package ```olahPeta``` bisa memantau hasil GC mana saja yang ada di ~Planet Mars~ luar desa/kecamatan/bahkan pulau lain lhoo...

@@ -4,6 +4,8 @@
 
 # olahPeta <a href="https://github.com/alwi0324/olahPeta"><img src="https://img.shields.io/badge/version-1.2.1-blue.svg" alt="version"></a> <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="license"></a>
 
+`olahPeta` is an R package designed to automatically read, rename, and rotate (if necessary) multiple scanned BPS Census or Survey map images based on a 14-digit SLS code detected within each image using Optical Character Recognition (OCR).
+
 ## ❓ Apa yang baru nih??
 
 - **Memproses file PNG pada fungsi rename_peta**  
@@ -13,13 +15,10 @@
   Dimonitoring provinsi di kegiatan GC? Kini package ```olahPeta``` bisa memantau hasil GC mana saja yang ada di ~Planet Mars~ luar desa/kecamatan/bahkan pulau lain lhoo...
   
 - **Saat peta digital SLS dipilih, fungsi ```sbr_out_desa()``` akan membuang non SLS**
-  Hasil GC nyasar di sawah/hutan? Sini monitoring mandiri dulu 🙂‍↔️
+  Hasil GC nyasar di sawah/hutan? Padahal masih di dalam desa. Nah lohh, sini monitoring mandiri dulu 🙂‍↔️
   
 - **Export usaha-usaha yang berada di luar desa masing-masing ke file geojson**
   Gak percaya sama hasil excel? Cuss bisa dicek usaha-usahanya di QGIS boss 😎
-
-
-`olahPeta` is an R package designed to automatically read, rename, and rotate (if necessary) multiple scanned BPS Census or Survey map images based on a 14-digit SLS code detected within each image using Optical Character Recognition (OCR).
 
 <br>
 

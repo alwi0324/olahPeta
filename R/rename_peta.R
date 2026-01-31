@@ -578,7 +578,7 @@ sbr_out_desa <- function(dir.titik = NULL, dir.desa.sls = NULL, target = c("gc",
           st.titik <- st_as_sf(titik.fix, coords = c("longitude_gc", "latitude_gc"), crs = 4326)
         } else if (keg == "profiling") {
           # buang titik/usaha yang NA atau kosong
-          titik.fix <- titik %>% filter(!is.na(latitude), latlong_status == "valid")
+          titik.fix <- titik %>% filter(is.na(gcs_result), !is.na(latitude), latlong_status == "valid")
 
           # ubah ke df spasial
           st.titik <- st_as_sf(titik.fix, coords = c("longitude", "latitude"), crs = 4326)

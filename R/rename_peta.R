@@ -544,16 +544,16 @@ opa <- function(ldmark = NULL, poly_map = NULL) {
 sbr_out_desa <- function(dir.titik = NULL, dir.desa.sls = NULL, target = c("gc", "profiling")) {
   # Validasi parameter
   params <- c(dir.titik, dir.desa.sls)
-
+  
   if (all(!is.null(params))) {
     # Load dataframe titik usaha
     if (str_detect(dir.titik, ".csv")) {
       titik <- read.csv(dir.titik)
-
+      
       # Load geojson desa
       if (str_detect(dir.desa.sls, "geojson")) {
         desa <- st_read(dir.desa.sls, quiet = T)
-
+        
         # cek apakah nama kolomnya mengandung iddesa
         if ("iddesa" %in% colnames(desa)) {
           cat("Sedang membaca file geojson desa...\n")
@@ -566,78 +566,78 @@ sbr_out_desa <- function(dir.titik = NULL, dir.desa.sls = NULL, target = c("gc",
           desa <- desa %>% arrange(idsls) %>% filter(str_starts(substr(idsls,11,14), "0")) %>% mutate(iddesa = substr(idsls,1,10))
           desa <- desa %>% st_make_valid() %>% group_by(iddesa, nmkec, nmdesa) %>% summarise(geometry = st_union(geometry))
         }
-
+        
         # cek titik di GC atau profiling
         keg <- match.arg(target)
-
+        
         if (keg == "gc") {
           # buang titik/usaha yang NA atau kosong
-          titik.fix <- titik %>% filter(!is.na(gcs_result), latlong_status_gc == "valid")
-
+          titik.fix <- titik %>% filter(!is.na(gcs_result), !is.na(latitude_gc), gcs_result == 1, latlong_status_gc == "valid", nchar(kode_wilayah) == 10)
+          
           # ubah ke df spasial
           st.titik <- st_as_sf(titik.fix, coords = c("longitude_gc", "latitude_gc"), crs = 4326)
         } else if (keg == "profiling") {
           # buang titik/usaha yang NA atau kosong
-          titik.fix <- titik %>% filter(is.na(gcs_result), !is.na(latitude), latlong_status == "valid")
-
+          titik.fix <- titik %>% filter(is.na(gcs_result), !is.na(latitude), latlong_status == "valid", status_perusahaan != "Duplikat", nchar(kode_wilayah) == 10)
+          
           # ubah ke df spasial
           st.titik <- st_as_sf(titik.fix, coords = c("longitude", "latitude"), crs = 4326)
         }
-
+        
         # filter yang iddesanya lengkap (10 digit)
-        st.titik.fix <- st.titik %>% filter(nchar(kode_wilayah) == 10) %>% arrange(kode_wilayah)
-
+        st.titik.fix <- st.titik %>% arrange(kode_wilayah)
+        
         message(paste0("Ditemukan sebanyak ", nrow(st.titik.fix), " perusahaan yang memiliki titik koordinat.\n"))
         message("Akan memulai proses identifikasi titik koordinat perusahaan tersebut dalam 5 detik...\n\n")
         Sys.sleep(5.5)
         message("MULAI!\n")
         Sys.sleep(1)
-
+        
         # get iddesa unik
         iddesa <- st.titik.fix$kode_wilayah %>% unique() %>% as.character()
-
+        
         # Analisis titik
         is.inside <- sapply(1:nrow(st.titik.fix), function(i) {
           cat(paste0("Sedang memproses perusahaan ke-",i," dari ", nrow(st.titik.fix), " perusahaan\n"))
           id <- st.titik.fix$kode_wilayah[i]
-
+          
           # Ambil poligon desa yang kodenya cocok
           poligon_target <- desa %>% filter(iddesa == id)
-
+          
           # Cek interaksi (sparse = FALSE agar dpt TRUE/FALSE tunggal)
           res <- st_intersects(st.titik.fix$geometry[i], poligon_target$geometry, sparse = FALSE)
-
+          
           # Jika ada hasil, ambil yang pertama, jika tidak ada poligon cocok beri FALSE
           if(length(res) > 0) return(res[1,1]) else return(FALSE)
         })
-
+        
         message("\nSedang mengambil perusahaan yang titiknya di luar desa masing-masing...")
         luar.desa <- which(is.inside == F)
         hasil <- st.titik.fix[luar.desa,]
-
+        
         # ambil kolom yang diperlukan
         if (keg == "gc") {
           hasilxl <- hasil %>% select(idsbr, nama_usaha, alamat_usaha, kode_wilayah, nmkec, nmdesa, kegiatan_usaha, status_perusahaan, gc_username)
         } else if (keg == "profiling") {
           hasilxl <- hasil %>% select(idsbr, nama_usaha, alamat_usaha, kode_wilayah, nmkec, nmdesa, kegiatan_usaha, status_perusahaan)
         }
-
+        
         message(paste0("Ditemukan sebanyak ", nrow(hasil), " usaha yang berada di luar desanya\n"))
         message("Sedang mengekspor perusahaan yang di luar desa ke file excel dan geojson...\n")
-
+        
         hasil.export <- st_drop_geometry(hasilxl)
-
+        
         # informasi waktu
         t <- as.character(Sys.time())
         t <- gsub(":", ".", unlist(strsplit(t, "\\."))[1])
-
+        
         # save as excel
         file_name <- paste0("usaha_di_luar_desa_", t)
         writexl::write_xlsx(hasil.export, paste0(file_name, ".xlsx"))
-
+        
         # save as geojson
         st_write(hasilxl, paste0(file_name, ".geojson"))
-
+        
         message("\n✅ Berhasil mengekspor file excel dengan nama: ", file_name,".xlsx")
         message("✅ Berhasil mengekspor file geojson dengan nama: ", file_name,".geojson")
         cat("Direktori hasil file ekspor:", getwd())
@@ -645,12 +645,12 @@ sbr_out_desa <- function(dir.titik = NULL, dir.desa.sls = NULL, target = c("gc",
         message("❗ File desa/SLS harus berformat geojson!\n")
       }
     } else {
-        message("❗ File hasil scraping usaha harus berformat csv!\n")
+      message("❗ File hasil scraping usaha harus berformat csv!\n")
     }
-
+    
   } else {
     message("❌ Tentukan direktori usaha hasil scraping SBR dan direktori file geojson peta desa/SLS terlebih dahulu! \n")
     return(invisible(NULL))
   }
-
+  
 }

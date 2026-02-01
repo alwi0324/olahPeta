@@ -1,7 +1,7 @@
 Package: olahPeta
 Type: Package
 Title: All-in-One System for Managing BPS Census and Survey Maps
-Version: 1.2.2
+Version: 1.2.3
 Author: @alwi0324
 Maintainer: Emha Alwi Al Makky <emhaalwialmakky@gmail.com>
 Description: Provides functions to automatically rename a batch of scanned

@@ -632,7 +632,20 @@ sbr_out_desa <- function(dir.titik = NULL, dir.desa.sls = NULL, target = c("gc",
         t <- gsub(":", ".", unlist(strsplit(t, "\\."))[1])
         
         # save as excel
-        file_name <- paste0("usaha_di_luar_desa_", t)
+        if (keg == "gc) {
+          if ("iddesa" %in% colnames(desa)) {
+            file_name <- paste0("Ground check_usaha_di_luar_desa_", t)
+          } else {
+            file_name <- paste0("Ground check_usaha_di_luar_SLS_desa_", t)
+          }
+        } else {
+          if ("iddesa" %in% colnames(desa)) {
+            file_name <- paste0("Profiling_usaha_di_luar_desa_", t)
+          } else {
+            file_name <- paste0("Profiling_usaha_di_luar_SLS_desa_", t)
+          }
+        }
+        
         writexl::write_xlsx(hasil.export, paste0(file_name, ".xlsx"))
         
         # save as geojson

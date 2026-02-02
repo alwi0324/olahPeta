@@ -549,6 +549,9 @@ sbr_out_desa <- function(dir.titik = NULL, dir.desa.sls = NULL, target = c("gc",
     # Load dataframe titik usaha
     if (str_detect(dir.titik, ".csv")) {
       titik <- read.csv(dir.titik)
+
+      # cek titik di GC atau profiling
+        keg <- match.arg(target)
       
       # Load geojson desa
       if (str_detect(dir.desa.sls, "geojson")) {
@@ -557,18 +560,25 @@ sbr_out_desa <- function(dir.titik = NULL, dir.desa.sls = NULL, target = c("gc",
         # cek apakah nama kolomnya mengandung iddesa
         if ("iddesa" %in% colnames(desa)) {
           cat("Sedang membaca file geojson desa...\n")
+          if (keg == "gc") {
+            file_name <- "Ground check_usaha_di_luar_desa_"
+          } else {
+            file_name <- "Profiling_usaha_di_luar_desa_"
+          }
           Sys.sleep(2)
           desa <- desa %>% arrange(iddesa)
         } else {
           # poligonnya SLS
           cat("Sedang membaca file geojson SLS...\n")
+          if (keg == "gc") {
+            file_name <- "Ground check_usaha_di_luar_SLS_desa_"
+          } else {
+            file_name <- "Profiling_usaha_di_luar_SLS_desa_"
+          }
           Sys.sleep(2)
           desa <- desa %>% arrange(idsls) %>% filter(str_starts(substr(idsls,11,14), "0")) %>% mutate(iddesa = substr(idsls,1,10))
           desa <- desa %>% st_make_valid() %>% group_by(iddesa, nmkec, nmdesa) %>% summarise(geometry = st_union(geometry))
         }
-        
-        # cek titik di GC atau profiling
-        keg <- match.arg(target)
         
         if (keg == "gc") {
           # buang titik/usaha yang NA atau kosong
@@ -631,28 +641,13 @@ sbr_out_desa <- function(dir.titik = NULL, dir.desa.sls = NULL, target = c("gc",
         t <- as.character(Sys.time())
         t <- gsub(":", ".", unlist(strsplit(t, "\\."))[1])
         
-        # save as excel
-        if (keg == "gc") {
-          if ("iddesa" %in% colnames(desa)) {
-            file_name <- paste0("Ground check_usaha_di_luar_SLS_desa_", t)
-          } else {
-            file_name <- paste0("Ground check_usaha_di_luar_desa_", t)
-          }
-        } else {
-          if ("iddesa" %in% colnames(desa)) {
-            file_name <- paste0("Profiling_usaha_di_luar_SLS_desa_", t)
-          } else {
-            file_name <- paste0("Profiling_usaha_di_luar_desa_", t)
-          }
-        }
-        
-        writexl::write_xlsx(hasil.export, paste0(file_name, ".xlsx"))
+        writexl::write_xlsx(hasil.export, paste0(file_name, t, ".xlsx"))
         
         # save as geojson
-        st_write(hasilxl, paste0(file_name, ".geojson"))
+        st_write(hasilxl, paste0(file_name, t, ".geojson"))
         
-        message("\n✅ Berhasil mengekspor file excel dengan nama: ", file_name,".xlsx")
-        message("✅ Berhasil mengekspor file geojson dengan nama: ", file_name,".geojson")
+        message("\n✅ Berhasil mengekspor file excel dengan nama: ", file_name, t, ".xlsx")
+        message("✅ Berhasil mengekspor file geojson dengan nama: ", file_name, t, ".geojson")
         cat("Direktori hasil file ekspor:", getwd())
       } else {
         message("❗ File desa/SLS harus berformat geojson!\n")

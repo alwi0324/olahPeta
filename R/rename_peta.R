@@ -585,17 +585,14 @@ sbr_out_desa <- function(dir.titik = NULL, dir.desa.sls = NULL, target = c("gc",
           titik.fix <- titik %>% filter(!is.na(gcs_result), !is.na(latitude_gc), gcs_result == 1, latlong_status_gc == "valid", nchar(kode_wilayah) == 10)
           
           # ubah ke df spasial
-          st.titik <- st_as_sf(titik.fix, coords = c("longitude_gc", "latitude_gc"), crs = 4326)
+          st.titik.fix <- st_as_sf(titik.fix, coords = c("longitude_gc", "latitude_gc"), crs = 4326) %>% arrange(kode_wilayah)
         } else if (keg == "profiling") {
           # buang titik/usaha yang NA atau kosong
           titik.fix <- titik %>% filter(is.na(gcs_result), !is.na(latitude), latlong_status == "valid", status_perusahaan != "Duplikat", nchar(kode_wilayah) == 10)
           
           # ubah ke df spasial
-          st.titik <- st_as_sf(titik.fix, coords = c("longitude", "latitude"), crs = 4326)
+          st.titik.fix <- st_as_sf(titik.fix, coords = c("longitude", "latitude"), crs = 4326) %>% arrange(kode_wilayah)
         }
-        
-        # filter yang iddesanya lengkap (10 digit)
-        st.titik.fix <- st.titik %>% arrange(kode_wilayah)
         
         message(paste0("Ditemukan sebanyak ", nrow(st.titik.fix), " perusahaan yang memiliki titik koordinat.\n"))
         message("Akan memulai proses identifikasi titik koordinat perusahaan tersebut dalam 5 detik...\n\n")
@@ -627,9 +624,9 @@ sbr_out_desa <- function(dir.titik = NULL, dir.desa.sls = NULL, target = c("gc",
         
         # ambil kolom yang diperlukan
         if (keg == "gc") {
-          hasilxl <- hasil %>% select(idsbr, nama_usaha, alamat_usaha, kode_wilayah, nmkec, nmdesa, kegiatan_usaha, status_perusahaan, gc_username)
+          hasilxl <- hasil %>% select(idsbr, nama_usaha, alamat_usaha, kode_wilayah, nmkec, nmdesa, kegiatan_usaha, status_perusahaan, history_ref_profiling_id, gc_username) %>% mutate(kegiatan_usaha = ifelse(kegiatan_usaha != '', str_extract(kegiatan_usaha, "(?<=\\[Kegiatan Usaha: ).*?(?=, Kategori)"), '')) %>% arrange(gc_username)
         } else if (keg == "profiling") {
-          hasilxl <- hasil %>% select(idsbr, nama_usaha, alamat_usaha, kode_wilayah, nmkec, nmdesa, kegiatan_usaha, status_perusahaan)
+          hasilxl <- hasil %>% select(idsbr, nama_usaha, alamat_usaha, kode_wilayah, nmkec, nmdesa, kegiatan_usaha, status_perusahaan, history_ref_profiling_id) %>% mutate(kegiatan_usaha = ifelse(kegiatan_usaha != '', str_extract(kegiatan_usaha, "(?<=\\[Kegiatan Usaha: ).*?(?=, Kategori)"), ''))
         }
         
         message(paste0("Ditemukan sebanyak ", nrow(hasil), " usaha yang berada di luar desanya\n"))
@@ -644,7 +641,7 @@ sbr_out_desa <- function(dir.titik = NULL, dir.desa.sls = NULL, target = c("gc",
         writexl::write_xlsx(hasil.export, paste0(file_name, t, ".xlsx"))
         
         # save as geojson
-        st_write(hasilxl, paste0(file_name, t, ".geojson"))
+        st_write(hasilxl, paste0(file_name, t, ".geojson"), quiet = TRUE)
         
         message("\n✅ Berhasil mengekspor file excel dengan nama: ", file_name, t, ".xlsx")
         message("✅ Berhasil mengekspor file geojson dengan nama: ", file_name, t, ".geojson")

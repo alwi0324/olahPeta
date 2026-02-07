@@ -161,92 +161,48 @@ rename_peta <- function(kodekab = NULL) {
                 message("✅ Rename dan putar file berhasil: ", files[i], " -> ", new_name,"\n")
 
               } else {
-                # baca seluruh gambar yang diputar
-                cat("Membaca seluruh gambar untuk mendapatkan kode SLS\n")
+                # naikkan dpi gambar jadi 200dpi
+                cat("Menaikkan resolusi gambar menjadi 200dpi\n")
+                img_dpi <- as.numeric(substr(image_info(gbr)$density,1,3)) # present dpi
+                scale_factor <- 200/img_dpi # faktor perbesaran
+                new_width  <- round(image_info(gbr)$width * scale_factor)
+                new_height  <- round(image_info(gbr)$height * scale_factor)
 
-                # Variabel untuk melacak status
+                gbr_resampled <- image_resize(gbr, paste0(new_width, "x", new_height)) # sudah jadi 200dpi
+                cat("Berhasil menaikkan resolusi gambar!\n")
+
                 kode_ditemukan <- FALSE
-                sudut_rotasi <- c(0, 90, 180, 270) # Daftar sudut yang akan dicoba
 
-                # Loop untuk setiap sudut rotasi
                 for (sudut in sudut_rotasi) {
-                  # Tentukan gambar mana yang akan diproses
-                  # Jika sudut 0, gunakan gambar asli. Jika tidak, putar gambar.
                   if (sudut == 0) {
-                    cat("Membaca gambar asli (0 derajat)...\n")
-                    gambar_proses <- gbr
+                    cat("Membaca gambar baru (0 derajat)...\n")
+                    gambar_proses <- gbr_resampled
                   } else {
-                    cat(paste0("Memutar dan membaca gambar (", sudut, " derajat)...\n"))
-                    gambar_proses <- image_rotate(gbr, sudut)
+                    cat(paste0("Memutar gambar baru (", sudut, " derajat)...\n"))
+                    gambar_proses <- image_rotate(gbr_resampled, sudut)
                   }
 
-                  # Coba ekstrak kode dari gambar yang sedang diproses
                   kode <- extract_kode_from_image(gambar_proses)
 
-                  # Jika kode berhasil ditemukan
                   if (!is_empty(kode)) {
-                    new_name <- paste0(kode, ".jpg")
+                    new_name <- paste0(kode, "_resampled.jpg")
 
-                    # Ganti nama file asli
-                    file.rename(files[i], file.path(".", new_name))
+                    # save as gambar_resampled and delete old one
+                    cat("Kode SLS ditemukan! Gambar baru disimpan...\n")
+                    image_write(gambar_proses, path = file.path(".", new_name), format = "jpg")
+                    cat(paste0("Menghapus gambar lama: ", files[i], "\n"))
+                    file.remove(files[i])
 
-                    # Jika gambar diputar (bukan gambar asli), simpan versi yang sudah diputar
-                    if (sudut > 0) {
-                      image_write(gambar_proses, path = file.path(".", new_name), format = "jpg")
-                    }
-
-                    message("✅ Rename file berhasil: ", files[i], " -> ", new_name, "\n")
+                    message("✅ Simpan file baru berhasil: ", files[i], " -> ", new_name, "\n")
                     kode_ditemukan <- TRUE # Set status menjadi TRUE
                     break # Hentikan loop karena kode sudah ditemukan
                   }
                 }
-                rm(sudut)
 
-                # Jika setelah semua rotasi dicoba dan kode tetap tidak ditemukan
                 if (!kode_ditemukan) {
-                  # naikkan dpi gambar jadi 200dpi
-                  cat("Menaikkan resolusi gambar menjadi 200dpi\n")
-                  img_dpi <- as.numeric(substr(image_info(gbr)$density,1,3)) # present dpi
-                  scale_factor <- 200/img_dpi # faktor perbesaran
-                  new_width  <- round(image_info(gbr)$width * scale_factor)
-                  new_height  <- round(image_info(gbr)$height * scale_factor)
-
-                  gbr_resampled <- image_resize(gbr, paste0(new_width, "x", new_height)) # sudah jadi 200dpi
-                  cat("Berhasil menaikkan resolusi gambar!\n")
-
-                  kode_ditemukan <- FALSE
-
-                  for (sudut in sudut_rotasi) {
-                    if (sudut == 0) {
-                      cat("Membaca gambar baru (0 derajat)...\n")
-                      gambar_proses <- gbr_resampled
-                    } else {
-                      cat(paste0("Memutar gambar baru (", sudut, " derajat)...\n"))
-                      gambar_proses <- image_rotate(gbr_resampled, sudut)
-                    }
-
-                    kode <- extract_kode_from_image(gambar_proses)
-
-                    if (!is_empty(kode)) {
-                      new_name <- paste0(kode, "_resampled.jpg")
-
-                      # save as gambar_resampled and delete old one
-                      cat("Kode SLS ditemukan! Gambar baru disimpan...\n")
-                      image_write(gambar_proses, path = file.path(".", new_name), format = "jpg")
-                      cat(paste0("Menghapus gambar lama: ", files[i], "\n"))
-                      file.remove(files[i])
-
-                      message("✅ Simpan file baru berhasil: ", files[i], " -> ", new_name, "\n")
-                      kode_ditemukan <- TRUE # Set status menjadi TRUE
-                      break # Hentikan loop karena kode sudah ditemukan
-                    }
-                  }
-
-                  if (!kode_ditemukan) {
-                    message("❌ Gagal mengambil kode SLS dari file: ", files[i], ". Harap periksa file scan peta!\n")
-                  }
-
+                  message("❌ Gagal mengambil kode SLS dari file: ", files[i], ". Harap periksa file scan peta!\n")
                 }
+                
               }
             }
           }
@@ -605,7 +561,9 @@ sbr_out_desa <- function(dir.titik = NULL, dir.desa.sls = NULL, target = c("gc",
         
         # Analisis titik
         is.inside <- sapply(1:nrow(st.titik.fix), function(i) {
-          cat(paste0("Sedang memproses perusahaan ke-",i," dari ", nrow(st.titik.fix), " perusahaan\n"))
+          if (i %% 20 == 0 || i == nrow(st.titik.fix)) {
+            cat(paste0("Sedang memproses perusahaan ke-",i," dari ", nrow(st.titik.fix), " perusahaan\n"))
+          }
           id <- st.titik.fix$kode_wilayah[i]
           
           # Ambil poligon desa yang kodenya cocok

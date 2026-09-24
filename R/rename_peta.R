@@ -10,29 +10,44 @@
 #' @noRd
 crop_corner <- function(img) {
   eng <- tesseract("eng")
-  # pastikan orientasi gambar sesuai EXIF
-  img <- image_orient(img)
-  info <- image_info(img)
+  
+  # Pastikan orientasi gambar sesuai EXIF
+  img_orient <- image_orient(img)
+  info <- image_info(img_orient)
   w <- info$width
-
-  geometry <- geometry_area(700, 170, w-700, 0)
-  cropped <- image_crop(img, geometry)
-
-  # OCR aman dengan tryCatch
+  
+  geometry <- geometry_area(700, 170, w - 700, 0)
+  cropped <- image_crop(img_orient, geometry)
+  
+  # Percobaan 1: OCR Standar
   text <- tryCatch(
     ocr(cropped, eng),
     error = function(e) return("")
   )
-
   text <- gsub("[§$]", "5", text)
-  kode <- regmatches(text, regexpr("[0-9]{14}", text))
-
-  # Bersihkan objek berat
-  rm(cropped, img)
+  kode <- regmatches(text, regexpr("[0-9]{16}|[0-9]{14}", text))
+  
+  # Percobaan 2: Jika kode kosong, pakai PSM 6 + Padding
+  if (length(kode) == 0) {
+    eng_crop <- tesseract("eng", options = list(tessedit_pageseg_mode = 6))
+    cropped_padded <- image_border(cropped, "white", "20x20")
+    
+    text <- tryCatch(
+      ocr(cropped_padded, eng_crop),
+      error = function(e) return("")
+    )
+    text <- gsub("[§$]", "5", text)
+    kode <- regmatches(text, regexpr("[0-9]{16}|[0-9]{14}", text))
+  }
+  
+  rm(cropped, img_orient)
   invisible(gc())
-
-  if (length(kode)) return(kode)
-  else return(NULL)
+  
+  if (length(kode) > 0) {
+    return(kode)
+  } else {
+    return(NULL)
+  }
 }
 
 #' @title Rename Scanned Map Files using OCR
@@ -52,187 +67,138 @@ crop_corner <- function(img) {
 #' # rename_peta(kodekab = "3273")
 #' }
 rename_peta <- function(kodekab = NULL) {
-  # Fungsi untuk mengekstrak kode dari gambar
-  extract_kode_from_image <- function(image_object) {
-    text <- ocr(image_object, tesseract("eng"))
-    text <- gsub("[§$]", "5", text)
-    kode <- regmatches(text, regexpr("[0-9]{14}", text))
-    return(kode)
+  if (is.null(kodekab)) {
+    message("❌ Tidak ada kode kabupaten yang dimasukkan. Harap masukkan kode kabupaten Anda (contoh: '3575').\n")
+    return(invisible(NULL))
   }
-
+  
+  files <- dir(pattern = "\\.(jpg|jpeg|png)$", ignore.case = TRUE)
+  if (length(files) == 0) {
+    message("❌ Tidak ada file scan peta (JPG/PNG) dalam folder ini.\n")
+    return(invisible(NULL))
+  }
+  
+  sudut_rotasi <- c(0, 180, 90, 270)
   idsls <- c()
-  files <- dir()
-  files <- files[grepl("\\.(jpg|png)$", files, ignore.case = TRUE)]
-
-  # Pastikan di folder ini berisi semua file jpg
-  if (!is_empty(files)) {
-    # kodekab harus ada
-    if (!is.null(kodekab)) {
-      # waktu mulai
-      a <- Sys.time()
-
-      for (i in 1:length(files)) {
-        cat(paste0("Sedang membaca peta ke-",i," dari ",length(files), " peta\n"))
-
-        # Reset engine setiap 30 file untuk menghindari error cache
-        if (i %% 30 == 0) {
-          invisible(gc())
-          eng <<- tesseract("eng")
-          message("🔄 Engine tesseract direset ulang.")
-        }
-
-        gbr <- image_orient(image_read(files[i]))
-        cat(paste0("Sedang mengambil kode SLS peta ke-",i,"\n"))
-
-        kode <- crop_corner(gbr) # 1st try
-
-        if (!is.null(kode)) {
-          idsls <- c(idsls, kode)
-
-          # jika tidak ada peta duplikat
-          new_files <- substr(dir(), 1, nchar(dir())-4)
-          if (length(which(new_files == kode)) == 0) {
-            new_name <- paste0(kode, ".jpg")
-          } else {
-            # ada duplikat
-            new_name <- paste0(kode, " (", length(which(idsls == kode)),").jpg")
-          }
-          file.rename(files[i], file.path(".", new_name))
-          message("✅ Rename file berhasil: ", files[i], " -> ", new_name,"\n")
-
-        } else {
-          # jika null, putar gambar 180 derajat lalu rename
-          putar <- image_rotate(gbr, 180)
-          kode <- crop_corner(putar) # 2nd try
-
-          if (!is.null(kode)) {
-            idsls <- c(idsls, kode)
-
-            # jika tidak ada peta duplikat
-            new_files <- substr(dir(), 1, nchar(dir())-4)
-            if (length(which(new_files == kode)) == 0) {
-              new_name <- paste0(kode, ".jpg")
-            } else {
-              # ada duplikat
-              new_name <- paste0(kode, " (", length(which(idsls == kode)),").jpg")
-            }
-            file.rename(files[i], file.path(".", new_name))
-            image_write(putar, path = file.path(".", new_name), format = "jpg")
-            message("✅ Rename dan putar file berhasil: ", files[i], " -> ", new_name,"\n")
-
-          } else {
-            # jika masih null, putar 90 atau 270 derajat sampai kodenya berhasil dibaca di pojok kanan atas
-            putar <- image_rotate(gbr, 90)
-            kode <- crop_corner(putar) # 3rd try
-
-            if (!is.null(kode)) {
-              idsls <- c(idsls, kode)
-
-              # jika tidak ada peta duplikat
-              new_files <- substr(dir(), 1, nchar(dir())-4)
-              if (length(which(new_files == kode)) == 0) {
-                new_name <- paste0(kode, ".jpg")
-              } else {
-                # ada duplikat
-                new_name <- paste0(kode, " (", length(which(idsls == kode)),").jpg")
-              }
-              file.rename(files[i], file.path(".", new_name))
-              image_write(putar, path = file.path(".", new_name), format = "jpg")
-              message("✅ Rename dan putar file berhasil: ", files[i], " -> ", new_name,"\n")
-
-            } else {
-              # jika masih null, putar 270 derajat
-              putar <- image_rotate(gbr, 270)
-              kode <- crop_corner(putar) # 4th try
-
-              if(!is.null(kode)) {
-                idsls <- c(idsls, kode)
-
-                # jika tidak ada peta duplikat
-                new_files <- substr(dir(), 1, nchar(dir())-4)
-                if (length(which(new_files == kode)) == 0) {
-                  new_name <- paste0(kode, ".jpg")
-                } else {
-                  # ada duplikat
-                  new_name <- paste0(kode, " (", length(which(idsls == kode)),").jpg")
-                }
-                file.rename(files[i], file.path(".", new_name))
-                image_write(putar, path = file.path(".", new_name), format = "jpg")
-                message("✅ Rename dan putar file berhasil: ", files[i], " -> ", new_name,"\n")
-
-              } else {
-                # naikkan dpi gambar jadi 200dpi
-                cat("Menaikkan resolusi gambar menjadi 200dpi\n")
-                img_dpi <- as.numeric(substr(image_info(gbr)$density,1,3)) # present dpi
-                scale_factor <- 200/img_dpi # faktor perbesaran
-                new_width  <- round(image_info(gbr)$width * scale_factor)
-                new_height  <- round(image_info(gbr)$height * scale_factor)
-
-                gbr_resampled <- image_resize(gbr, paste0(new_width, "x", new_height)) # sudah jadi 200dpi
-                cat("Berhasil menaikkan resolusi gambar!\n")
-
-                kode_ditemukan <- FALSE
-
-                for (sudut in sudut_rotasi) {
-                  if (sudut == 0) {
-                    cat("Membaca gambar baru (0 derajat)...\n")
-                    gambar_proses <- gbr_resampled
-                  } else {
-                    cat(paste0("Memutar gambar baru (", sudut, " derajat)...\n"))
-                    gambar_proses <- image_rotate(gbr_resampled, sudut)
-                  }
-
-                  kode <- extract_kode_from_image(gambar_proses)
-
-                  if (!is_empty(kode)) {
-                    new_name <- paste0(kode, "_resampled.jpg")
-
-                    # save as gambar_resampled and delete old one
-                    cat("Kode SLS ditemukan! Gambar baru disimpan...\n")
-                    image_write(gambar_proses, path = file.path(".", new_name), format = "jpg")
-                    cat(paste0("Menghapus gambar lama: ", files[i], "\n"))
-                    file.remove(files[i])
-
-                    message("✅ Simpan file baru berhasil: ", files[i], " -> ", new_name, "\n")
-                    kode_ditemukan <- TRUE # Set status menjadi TRUE
-                    break # Hentikan loop karena kode sudah ditemukan
-                  }
-                }
-
-                if (!kode_ditemukan) {
-                  message("❌ Gagal mengambil kode SLS dari file: ", files[i], ". Harap periksa file scan peta!\n")
-                }
-                
-              }
-            }
-          }
-
-        }
-      }
-
-      # waktu selesai
-      b <- Sys.time()
-
-      berhasil <- length(which(str_detect(dir(), paste0("^",kodekab)) == T))
-      if (berhasil > 0) {
-        menit <- floor(time_length(b-a)/60)
-        detik <- floor(time_length(b-a)%%60)
-        if (menit == 0) {
-          message(paste0("Durasi untuk rename file scan peta sebanyak ", length(files), " file adalah ", detik, " detik.\n"))
-        } else {
-          message(paste0("Durasi untuk rename file scan peta sebanyak ", length(files), " file adalah ", menit, " menit ", detik, " detik.\n"))
-        }
-
-        message("🎉 Rename peta selesai! Sebanyak ", berhasil, " file scan peta berhasil di-rename!")
-      } else {
-        message("❌ Tidak ada file peta yang bisa di-rename. Harap pastikan file scan peta tidak terlipat/kotak berisi kode SLS terbaca dengan jelas.")
-      }
-    } else {
-      message("❌ Tidak ada kode kabupaten yang dimasukkan. Harap masukkan kode kabupaten Anda (contoh: 3575) \n")
-      return(invisible(NULL)) # handle null argument kodekab
+  a <- Sys.time()
+  
+  # Helper OCR Fallback jika crop_corner gagal
+  extract_kode_from_image <- function(image_object) {
+    eng_crop <- tesseract("eng", options = list(tessedit_pageseg_mode = 6))
+    image_padded <- image_border(image_object, "white", "20x20")
+    
+    text <- tryCatch(
+      ocr(image_padded, eng_crop),
+      error = function(e) return("")
+    )
+    text <- gsub("[§$]", "5", text)
+    kode <- regmatches(text, regexpr("[0-9]{16}|[0-9]{14}", text))
+    if (length(kode) > 0) return(kode) else return(NULL)
+  }
+  
+  for (i in seq_along(files)) {
+    cat(sprintf("\nSedang membaca peta ke-%d dari %d: %s\n", i, length(files), files[i]))
+    
+    if (i %% 30 == 0) {
+      invisible(gc())
+      message("🔄 Garbage collection dilakukan.")
     }
+    
+    # Bungkus tiap file agar error di 1 file tidak menghentikan seluruh proses
+    tryCatch({
+      gbr <- image_orient(image_read(files[i]))
+      kode_ditemukan <- NULL
+      gambar_final <- NULL
+      
+      # TAHAP 1: Coba 4 sudut rotasi ukuran asli dengan crop_corner
+      for (sudut in sudut_rotasi) {
+        gbr_tes <- if (sudut == 0) gbr else image_rotate(gbr, sudut)
+        
+        kode_ditemukan <- crop_corner(gbr_tes)
+        if (!is.null(kode_ditemukan)) {
+          gambar_final <- gbr_tes
+          break
+        }
+      }
+      
+      # TAHAP 2: Jika masih gagal, naikkan resolusi (Resample 200 DPI dengan aman)
+      if (is.null(kode_ditemukan)) {
+        cat("Menaikkan resolusi gambar menjadi 200dpi...\n")
+        
+        info <- image_info(gbr)
+        density_raw <- info$density
+        
+        # Ekstrasi DPI secara aman, fallback ke 96 jika NA/kosong
+        img_dpi <- suppressWarnings(as.numeric(stringr::str_extract(density_raw, "^[0-9]+")))
+        if (is.na(img_dpi) || img_dpi <= 0) {
+          img_dpi <- 96 
+        }
+        
+        scale_factor <- 200 / img_dpi
+        if (scale_factor > 3) scale_factor <- 2.0 
+        
+        new_w <- round(info$width * scale_factor)
+        new_h <- round(info$height * scale_factor)
+        
+        gbr_resampled <- image_resize(gbr, paste0(new_w, "x", new_h))
+        
+        # Coba lagi 4 sudut rotasi menggunakan full image OCR fallback
+        for (sudut in sudut_rotasi) {
+          gbr_tes <- if (sudut == 0) gbr_resampled else image_rotate(gbr_resampled, sudut)
+          
+          kode_ditemukan <- extract_kode_from_image(gbr_tes)
+          if (!is.null(kode_ditemukan)) {
+            gambar_final <- gbr_tes
+            break
+          }
+        }
+      }
+      
+      # TAHAP 3: Simpan / Rename File
+      if (!is.null(kode_ditemukan)) {
+        idsls <- c(idsls, kode_ditemukan)
+        
+        count_dup <- sum(idsls == kode_ditemukan)
+        if (count_dup == 1) {
+          new_name <- paste0(kode_ditemukan, ".jpg")
+        } else {
+          new_name <- paste0(kode_ditemukan, " (", count_dup, ").jpg")
+        }
+        
+        image_write(gambar_final, path = file.path(".", new_name), format = "jpg")
+        
+        if (files[i] != new_name && file.exists(files[i])) {
+          file.remove(files[i])
+        }
+        
+        message("✅ Rename file berhasil: ", files[i], " -> ", new_name, "\n")
+      } else {
+        message("❌ Gagal mengambil kode SLS dari file: ", files[i], "\n")
+      }
+      
+    }, error = function(e) {
+      message("⚠️ Error memproses file ", files[i], ": ", e$message, "\n")
+    })
+  }
+  
+  # Laporan akhir
+  b <- Sys.time()
+  durasi <- as.numeric(difftime(b, a, units = "secs"))
+  menit <- floor(durasi / 60)
+  detik <- floor(durasi %% 60)
+  
+  berhasil <- sum(stringr::str_detect(dir(), paste0("^", kodekab)))
+  
+  if (menit == 0) {
+    message(sprintf("Durasi untuk rename file scan peta sebanyak %d file adalah %d detik.\n", length(files), detik))
   } else {
-    message("❌ Tidak ada file scan peta (JPG/PNG) dalam folder ini. Silakan pindah ke direktori yang berisi file scan peta!\n")
+    message(sprintf("Durasi untuk rename file scan peta sebanyak %d file adalah %d menit %d detik.\n", length(files), menit, detik))
+  }
+  
+  if (berhasil > 0) {
+    message(sprintf("🎉 Rename peta selesai! Sebanyak %d file scan peta berhasil di-rename!", berhasil))
+  } else {
+    message("❌ Tidak ada file peta yang bisa di-rename.")
   }
 }
 
